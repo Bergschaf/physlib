@@ -852,32 +852,29 @@ We give some open TODOs for the classical harmonic oscillator.
 end InitialConditions
 
 /--
-The period of a Harmonic Osciallator is `2 * π / ω`.
+The period of a harmonic oscillator is `2 * π / ω`.
 -/
 noncomputable def period (S : HarmonicOscillator) : ℝ := 2 * π / S.ω
 
-noncomputable abbrev T := HarmonicOscillator.period
+scoped notation "T" => HarmonicOscillator.period
 
-lemma period_eq : S.T = 2 * π / S.ω := rfl
+lemma period_eq : T S = 2 * π / S.ω := rfl
 
-lemma period_pos : 0 < S.T := by
+lemma period_pos : 0 < T S := by
   have := S.ω_pos
   rw [period_eq]
   positivity
 
 /--
-The trajectory of the harmonic oscialltor is periodic with period of `2 * π / ω`.
+The trajectory of the harmonic oscillator is periodic with period of `2 * π / ω`.
 -/
 lemma trajectory_periodic (IC : InitialConditions) :
-    Function.Periodic (IC.trajectory S) S.T := by
-  simp only [Function.Periodic, InitialConditions.trajectory, add_val]
-  intro t
-  have h2 : S.ω * (t.val + 2 * π / S.ω) = S.ω * t.val + 2 * π := calc
-    _ = S.ω * t.val + S.ω * S.ω⁻¹ * 2 * π := by ring
-    _ = _ := by
-      rw [mul_inv_cancel₀ S.ω_ne_zero]
-      ring
-  rw [period_eq, h2, Real.cos_add_two_pi, Real.sin_add_two_pi]
+    Function.Periodic (IC.trajectory S) (T S) := fun t ↦ by
+  have h2 : S.ω * (t.val + 2 * π / S.ω) = S.ω * t.val + 2 * π := by
+    have := S.ω_ne_zero
+    ring_nf; field_simp
+  rw [InitialConditions.trajectory, add_val, period_eq, h2, cos_add_two_pi, sin_add_two_pi]
+  rfl
 
 TODO "For the classical harmonic oscillator find the time for which it returns to
   it's initial position and velocity."
