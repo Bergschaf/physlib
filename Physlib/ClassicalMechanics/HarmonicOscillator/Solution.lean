@@ -841,14 +841,6 @@ lemma trajectory_velocity_eq_zero_iff (IC : InitialConditions) (t : Time) :
     rw [pow_ne_zero_iff ?_]
     apply ω_ne_zero
     exact Ne.symm (Nat.zero_ne_add_one 1)
-/-!
-
-## F. Some open TODOs
-
-We give some open TODOs for the classical harmonic oscillator.
-
--/
-
 end InitialConditions
 
 /--
@@ -875,6 +867,14 @@ lemma trajectory_periodic (IC : InitialConditions) :
     ring_nf; field_simp
   rw [InitialConditions.trajectory, add_val, period_eq, h, cos_add_two_pi, sin_add_two_pi]
   rfl
+
+/-!
+
+## F. Some open TODOs
+
+We give some open TODOs for the classical harmonic oscillator.
+
+-/
 
 TODO "For the classical harmonic oscillator find the time for which it returns to
   it's initial position and velocity."
