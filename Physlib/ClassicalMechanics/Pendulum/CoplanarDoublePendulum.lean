@@ -6,6 +6,14 @@ Authors: Shlok Vaibhav Singh
 module
 
 public import Physlib.Meta.Linters.Sorry
+public import Mathlib.Data.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Angle
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Physlib.SpaceAndTime.Space.LengthUnit
+public import Physlib.ClassicalMechanics.Mass.MassUnit
+public import Mathlib.Analysis.Complex.Circle
+public import Physlib.SpaceAndTime.TimeAndSpace.Basic
+
 /-!
 # Coplanar Double Pendulum
 ### Tag: LnL_1.5.1
@@ -67,11 +75,68 @@ $$
 
 namespace ClassicalMechanics
 
+structure CoplanarDoublePendulum where
+  l₁ : LengthUnit
+  l₂ : LengthUnit
+  m₁ : MassUnit
+  m₂ : MassUnit
+  g : NNReal
+
 namespace CoplanarDoublePendulum
 
-/-- The configuration space of the coplaner double pendulum. -/
-@[sorryful]
-def ConfigurationSpace : Type := sorry
+open Real
 
+/-- The configuration space of the coplaner double pendulum. -/
+abbrev ConfigurationSpace := (Fin 2) → ℝ
+
+variable  (P : CoplanarDoublePendulum) (C : ConfigurationSpace)
+
+def ConfigurationSpace.phi_1 := C 1
+def ConfigurationSpace.phi_2 := C 2
+
+
+scoped notation "φ₁" => ConfigurationSpace.phi_1
+
+scoped notation "φ₂" => ConfigurationSpace.phi_2
+
+
+open Time
+noncomputable section
+/--
+The cartesian coordinates of mass `m₁`.
+-/
+def r₁ : ConfigurationSpace → EuclideanSpace ℝ (Fin 2) := fun C ↦
+  !₂[P.l₁.val * sin (φ₁ C), -P.l₁.val * cos (φ₁ C)]
+
+def r₂ : ConfigurationSpace → EuclideanSpace ℝ (Fin 2) := fun C ↦
+  r₁ P C + !₂[P.l₂.val * sin (φ₂ C), - P.l₂.val * cos (φ₂ C)]
+
+def V₁ : ConfigurationSpace → ℝ := fun C ↦
+  P.m₁.val * P.g * (r₁ P C 0)
+
+def T₁ (v : ConfigurationSpace) : ℝ := 1/2 * P.m₁.val * P.l₁.val^2 * ‖v‖^2
+
+lemma deriv_aux {q : ConfigurationSpace} :
+  (fderiv ℝ P.r₁ q) = sorry := by
+  sorry
+
+def T₁_eq_euclid (q : Time → ConfigurationSpace) (h : Differentiable ℝ q) :
+    (fun t ↦ 1/2 * P.m₁.val * ‖deriv (r₁ P ∘ q) t‖^2) = (T₁ P) ∘ ∂ₜ q := by
+  ext t
+  simp only [one_div, Time.deriv, Function.comp_apply, T₁]
+  rw [fderiv_comp]
+  · simp
+
+    sorry
+  · sorry
+  · exact Differentiable.differentiableAt h
+
+
+
+
+
+
+
+end
 end CoplanarDoublePendulum
 end ClassicalMechanics
