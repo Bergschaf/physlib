@@ -870,10 +870,10 @@ The trajectory of the harmonic oscillator is periodic with period of `2 * π / �
 -/
 lemma trajectory_periodic (IC : InitialConditions) :
     Function.Periodic (IC.trajectory S) (T S) := fun t ↦ by
-  have h2 : S.ω * (t.val + 2 * π / S.ω) = S.ω * t.val + 2 * π := by
+  have h : S.ω * (t.val + 2 * π / S.ω) = S.ω * t.val + 2 * π := by
     have := S.ω_ne_zero
     ring_nf; field_simp
-  rw [InitialConditions.trajectory, add_val, period_eq, h2, cos_add_two_pi, sin_add_two_pi]
+  rw [InitialConditions.trajectory, add_val, period_eq, h, cos_add_two_pi, sin_add_two_pi]
   rfl
 
 TODO "For the classical harmonic oscillator find the time for which it returns to
