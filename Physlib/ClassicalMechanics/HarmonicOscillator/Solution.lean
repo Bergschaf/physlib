@@ -219,13 +219,6 @@ lemma x₀_zero : x₀ 0 = 0 := rfl
 @[simp]
 lemma v₀_zero : v₀ 0 = 0 := rfl
 
-def ZeroVelocity (x : EuclideanSpace ℝ (Fin 1)) : InitialConditions where
-  x₀ := x
-  v₀ := 0
-
-@[simp]
-lemma ZeroVelocity.v₀_zero {x : EuclideanSpace ℝ (Fin 1)} : v₀ (ZeroVelocity x) = 0 := rfl
-
 end InitialConditions
 /-!
 
@@ -273,15 +266,6 @@ The trajectory for zero initial conditions is the zero function.
 @[simp]
 lemma trajectory_zero : trajectory S 0 = fun _ => 0 := by
   simp [trajectory_eq]
-
-
--- TODO sinnvoller titel
-lemma trajectory_ZeroVelocity {x₀ : EuclideanSpace ℝ (Fin 1)} :
-   (ZeroVelocity x₀).trajectory S = fun t : Time => cos (S.ω * t) • x₀ := by
-  ext t i
-  simp only [trajectory, ZeroVelocity.v₀_zero, smul_zero, add_zero, PiLp.smul_apply, smul_eq_mul,
-    mul_eq_mul_left_iff]
-  exact Or.inl rfl
 
 /-!
 
