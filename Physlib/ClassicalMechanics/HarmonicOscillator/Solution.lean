@@ -854,13 +854,15 @@ end InitialConditions
 /--
 The period of a Harmonic Osciallator is `2 * π / ω`.
 -/
-noncomputable def T (S : HarmonicOscillator) : ℝ := 2 * π / S.ω
+noncomputable def period (S : HarmonicOscillator) : ℝ := 2 * π / S.ω
 
-lemma T.def : S.T = 2 * π / S.ω := rfl
+noncomputable abbrev T := HarmonicOscillator.period
 
-lemma T.pos : 0 < S.T := by
+lemma period_eq : S.T = 2 * π / S.ω := rfl
+
+lemma period_pos : 0 < S.T := by
   have := S.ω_pos
-  rw [T.def]
+  rw [period_eq]
   positivity
 
 /--
@@ -870,23 +872,12 @@ lemma trajectory_periodic (IC : InitialConditions) :
     Function.Periodic (IC.trajectory S) S.T := by
   simp only [Function.Periodic, InitialConditions.trajectory, add_val]
   intro t
-  have h1 : Real.cos (S.ω * (t.val + S.T)) = Real.cos (S.ω * t) :=
-    calc
-      _ = Real.cos (S.ω * t.val + S.ω * S.ω⁻¹ * 2 * π) := by
-        rw [T.def]
-        ring_nf
-      _ = Real.cos (S.ω * t.val + 2 * π) := by
-        rw [mul_inv_cancel₀ S.ω_ne_zero]
-        ring
-      _ = _ := by rw [Real.cos_add_two_pi]
-  rw [h1]
-  congr 3
   have h2 : S.ω * (t.val + 2 * π / S.ω) = S.ω * t.val + 2 * π := calc
     _ = S.ω * t.val + S.ω * S.ω⁻¹ * 2 * π := by ring
     _ = _ := by
       rw [mul_inv_cancel₀ S.ω_ne_zero]
       ring
-  rw [T.def, h2, Real.sin_add_two_pi]
+  rw [period_eq, h2, Real.cos_add_two_pi, Real.sin_add_two_pi]
 
 TODO "For the classical harmonic oscillator find the time for which it returns to
   it's initial position and velocity."
