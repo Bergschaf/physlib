@@ -269,7 +269,6 @@ lemma trajectory_zero : trajectory S 0 = fun _ => 0 := by
 
 /-!
 
-
 ### B.3. Smoothness of the trajectories
 
 The trajectories for any initial conditions are smooth functions of time.
