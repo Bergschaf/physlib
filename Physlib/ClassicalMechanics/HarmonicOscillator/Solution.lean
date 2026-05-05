@@ -848,6 +848,7 @@ The period of a harmonic oscillator is `2 * π / ω`.
 -/
 noncomputable def period (S : HarmonicOscillator) : ℝ := 2 * π / S.ω
 
+@[inherit_doc period]
 scoped notation "T" => HarmonicOscillator.period
 
 lemma period_eq : T S = 2 * π / S.ω := rfl
