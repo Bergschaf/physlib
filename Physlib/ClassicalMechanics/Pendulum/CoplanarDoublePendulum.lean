@@ -16,6 +16,11 @@ public import Physlib.SpaceAndTime.TimeAndSpace.Basic
 public import Mathlib.Topology.MetricSpace.Basic
 public import Mathlib.Topology.Homeomorph.TransferInstance
 public import Mathlib.Geometry.Manifold.ChartedSpace
+public import Mathlib.Geometry.Manifold.StructureGroupoid
+public import Mathlib.Topology.Connected.LocPathConnected
+public import Mathlib.Topology.IsLocalHomeomorph
+public import Mathlib.Topology.OpenPartialHomeomorph.Constructions
+public import Mathlib.Geometry.Manifold.Instances.Sphere
 /-!
 # Coplanar Double Pendulum
 ### Tag: LnL_1.5.1
@@ -78,11 +83,51 @@ $$
 -- This is already in mathlib but not in the version imported here
 
 section IsLocalHomeomorph
+variable {H : Type u} {H' : Type*} {M : Type*} {M' : Type*} {M'' : Type*}
 variable [TopologicalSpace M] [TopologicalSpace M'] [TopologicalSpace H] [ChartedSpace H M]
+open Set OpenPartialHomeomorph Manifold
+open TopologicalSpace Topology
+variable {X Y Z : Type*} [TopologicalSpace X] [TopologicalSpace Y] [TopologicalSpace Z] (g : Y → Z)
+  {f : X → Y} (s : Set X) (t : Set Y)
+
+namespace IsLocalHomeomorph
+variable (hf : IsLocalHomeomorph f) {x : X}
+variable (x) in
+/-- A chosen local inverse for a local homeomorphism `f` at a point `x`. -/
+noncomputable def localInverseAt : OpenPartialHomeomorph Y X := (hf x).choose.symm
+
+/-- The point `x` lies in the target of `localInverseAt x`. -/
+@[grind =>, simp] lemma self_mem_localInverseAt_target : x ∈ (hf.localInverseAt x).target :=
+  (hf x).choose_spec.1
+variable (x) in
+/-- The inverse function of `localInverseAt x` coincides with `f`. -/
+@[simp] lemma localInverseAt_symm : (hf.localInverseAt x).symm = f :=
+  (hf x).choose_spec.2.symm
+/-- The point `f x` lies in the source of `localInverseAt x`. -/
+@[grind =>, simp] lemma apply_self_mem_localInverseAt_source :
+    f x ∈ (hf.localInverseAt x).source := by
+  rw [← congrFun (hf.localInverseAt_symm x)]
+  exact (hf.localInverseAt x).map_target hf.self_mem_localInverseAt_target
+/-- The function `f` is injective on the target of `localInverseAt x`. -/
+lemma injOn_localInverseAt_target : (hf.localInverseAt x).target.InjOn f := by
+  rw [Set.EqOn.injOn_iff (f₂ := (hf.localInverseAt x).symm) (fun y _ ↦ by simp)]
+  exact (hf.localInverseAt x).symm.injOn
+/-- If `y` lies in the source of `localInverseAt x`, then `f (localInverseAt x y) = y`. -/
+@[grind .] lemma apply_localInverseAt_of_mem {y : Y} (hx : y ∈ (hf.localInverseAt x).source) :
+    f (hf.localInverseAt x y) = y := by
+  rw [← congrFun (hf.localInverseAt_symm x)]
+  exact (hf.localInverseAt x).left_inv hx
+/-- The function `localInverseAt x` sends `f x` back to `x`. -/
+@[simp] lemma localInverseAt_apply_self : hf.localInverseAt x (f x) = x :=
+  hf.injOn_localInverseAt_target (by simp) hf.self_mem_localInverseAt_target <|
+    hf.apply_localInverseAt_of_mem hf.apply_self_mem_localInverseAt_source
+
+end IsLocalHomeomorph
+
 /-- Given a right inverse for a local homeomorphism `f : M → M'`, endow `M'` with a `ChartedSpace`
 structure by pushing forward the `ChartedSpace` structure from `M`. -/
 @[implicit_reducible]
-def IsLocalHomeomorph.chartedSpaceOfRightInverse
+noncomputable def IsLocalHomeomorph.chartedSpaceOfRightInverse
     {f : M → M'} (hf : IsLocalHomeomorph f) {g : M' → M} (hg : Function.RightInverse g f) :
     ChartedSpace H M' where
   atlas := {(hf.localInverseAt (g q)).trans (chartAt H (g q)) | q : M'}
@@ -94,14 +139,14 @@ def IsLocalHomeomorph.chartedSpaceOfRightInverse
 /-- Given a surjective local homeomorphism `f : M → M'`, endow `M'` with a `ChartedSpace` structure
 by pushing forward the `ChartedSpace` structure from `M`. -/
 @[implicit_reducible]
-def IsLocalHomeomorph.chartedSpace
+noncomputable def IsLocalHomeomorph.chartedSpace
     {f : M → M'} (hf : IsLocalHomeomorph f) (hf' : Function.Surjective f) :
     ChartedSpace H M' :=
   hf.chartedSpaceOfRightInverse hf'.hasRightInverse.choose_spec
 end IsLocalHomeomorph
 
 namespace ClassicalMechanics
-
+/-
 structure HolonomicLagrangeProblem where
   /-- Dimensions -/
   d : ℕ+
@@ -125,7 +170,7 @@ structure HolonomicLagrangeProblem where
   potential : Space (d * N) → ℝ
 
   kineticEnergy : Space (d * N) → Space (d * N) → ℝ := sorry -- default value with 1/2 * m i * (v i)^2
-
+-/
 
 
 
@@ -154,7 +199,6 @@ def configurationSpaceEquivProd : ConfigurationSpace ≃ Circle × Circle where
   toFun c := ⟨c.φ₁, c.φ₂⟩
   invFun p := ⟨p.1, p.2⟩
 
-
 noncomputable instance : TopologicalSpace ConfigurationSpace :=
   configurationSpaceEquivProd.topologicalSpace
 
@@ -170,7 +214,39 @@ noncomputable def configurationSpaceHomProd : ConfigurationSpace  ≃ₜ Circle 
   · grind
   )
 
-def aux := IsLocalHomeomorph.chartedSpace
+noncomputable section
+instance : Fact (0 < 2 * π)  := ⟨by simp; exact pi_pos⟩
+
+
+-- target: alles außer 0
+abbrev ℝ_to_Addcirc := (AddCircle.openPartialHomeomorphCoe (2 * π)) 1
+
+
+-- target: alles außer π
+abbrev ℝ_to_Addcirc' := (AddCircle.openPartialHomeomorphCoe (2 * π)) 2
+abbrev AddCirc_to_Circle := AddCircle.homeomorphCircle'.toOpenPartialHomeomorph
+
+abbrev Circle_without_1_to_ℝ := (ℝ_to_Addcirc ≫ₕ AddCirc_to_Circle).symm
+abbrev Circle_without_2_to_ℝ := (ℝ_to_Addcirc' ≫ₕ AddCirc_to_Circle).symm
+#check AddCirc_to_Circle
+
+/-- For Mathlib -/
+instance : ChartedSpace ℝ Circle where
+  atlas := {Circle_without_1_to_ℝ, Circle_without_2_to_ℝ}
+  chartAt c := if c.argEquiv.val ∈ Set.Ioo (1/2) (3/2) then Circle_without_2_to_ℝ else
+    Circle_without_1_to_ℝ
+  mem_chart_source := by
+    intro x
+    simp_all only [Circle.argEquiv_apply_coe, mem_Ioo]
+
+
+
+  chart_mem_atlas := by grind
+
+
+#synth IsManifold 𝓘(ℝ, ℝ × ℝ) 2 (ℝ × ℝ)
+#synth IsManifold 𝓘(ℝ) 2 Circle
+#check configurationSpaceHomProd.symm.isLocalHomeomorph.chartedSpace sorry
 
 
 def configurationSpaceEquivProd' : ConfigurationSpace ≃L[ℝ] Circle × Circle := by
