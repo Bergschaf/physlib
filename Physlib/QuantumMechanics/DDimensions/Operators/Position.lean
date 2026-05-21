@@ -400,10 +400,8 @@ lemma positionOperator_hasDenseDomain : (𝓧 i).HasDenseDomain :=
 lemma positionOperator_isSelfAdjoint : IsSelfAdjoint (𝓧 i) :=
   mulOperator_isSelfAdjoint_ofReal (by fun_prop) (by ext; simp)
 
-lemma positionOperator_isUnbounded : (𝓧 i).IsUnbounded := by
-  refine LinearPMap.IsSelfAdjoint.isUnbounded ?_ ?_
-  · exact positionOperator_isSelfAdjoint i
-  · exact positionOperator_hasDenseDomain i
+lemma positionOperator_isUnbounded : (𝓧 i).IsUnbounded :=
+  LinearPMap.IsSelfAdjoint.isUnbounded (positionOperator_isSelfAdjoint i)
 
 /-!
 ### B.2. Radius powers (regularized)
@@ -426,10 +424,8 @@ lemma radiusRegPowOperator_hasDenseDomain (ε : ℝˣ) (s : ℝ) : (𝓡₀[d] �
 lemma radiusRegPowOperator_isSelfAdjoint (ε : ℝˣ) (s : ℝ) : IsSelfAdjoint (𝓡₀[d] ε s) := by
   refine mulOperator_isSelfAdjoint_ofReal (by fun_prop) (by ext; simp)
 
-lemma radiusRegPowOperator_isUnbounded (ε : ℝˣ) (s : ℝ) : (𝓡₀[d] ε s).IsUnbounded := by
-  refine LinearPMap.IsSelfAdjoint.isUnbounded ?_ ?_
-  · exact radiusRegPowOperator_isSelfAdjoint ε s
-  · exact radiusRegPowOperator_hasDenseDomain ε s
+lemma radiusRegPowOperator_isUnbounded (ε : ℝˣ) (s : ℝ) : (𝓡₀[d] ε s).IsUnbounded :=
+  LinearPMap.IsSelfAdjoint.isUnbounded (radiusRegPowOperator_isSelfAdjoint ε s)
 
 /-!
 ### B.3. Radius powers
@@ -457,10 +453,8 @@ lemma radiusPowOperator_isSelfAdjoint (s : ℝ) : IsSelfAdjoint (𝓡[d] s) := b
   ext x
   simp [normRegularizedPow, ← Real.rpow_natCast_mul (norm_nonneg x), mul_div_cancel₀ s two_ne_zero]
 
-lemma radiusPowOperator_isUnbounded (s : ℝ) : (𝓡[d] s).IsUnbounded := by
-  refine LinearPMap.IsSelfAdjoint.isUnbounded ?_ ?_
-  · exact radiusPowOperator_isSelfAdjoint s
-  · exact radiusPowOperator_hasDenseDomain s
+lemma radiusPowOperator_isUnbounded (s : ℝ) : (𝓡[d] s).IsUnbounded :=
+  LinearPMap.IsSelfAdjoint.isUnbounded (radiusPowOperator_isSelfAdjoint s)
 
 open Complex
 
