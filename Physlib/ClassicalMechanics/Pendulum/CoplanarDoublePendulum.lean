@@ -21,6 +21,9 @@ public import Mathlib.Topology.Connected.LocPathConnected
 public import Mathlib.Topology.IsLocalHomeomorph
 public import Mathlib.Topology.OpenPartialHomeomorph.Constructions
 public import Mathlib.Geometry.Manifold.Instances.Sphere
+public import Mathlib.Topology.IsLocalHomeomorph
+public import Mathlib.Topology.Algebra.Module.Equiv
+public import Mathlib.Analysis.Normed.Module.TransferInstance
 /-!
 # Coplanar Double Pendulum
 ### Tag: LnL_1.5.1
@@ -214,46 +217,8 @@ noncomputable def configurationSpaceHomProd : ConfigurationSpace  ≃ₜ Circle 
   · grind
   )
 
-noncomputable section
-instance : Fact (0 < 2 * π)  := ⟨by simp; exact pi_pos⟩
+lemma  aux' : Topology.IsOpenEmbedding ⇑configurationSpaceEquivProd:= by sorry
 
-
--- target: alles außer 0
-abbrev ℝ_to_Addcirc := (AddCircle.openPartialHomeomorphCoe (2 * π)) 1
-
-
--- target: alles außer π
-abbrev ℝ_to_Addcirc' := (AddCircle.openPartialHomeomorphCoe (2 * π)) 2
-abbrev AddCirc_to_Circle := AddCircle.homeomorphCircle'.toOpenPartialHomeomorph
-
-abbrev Circle_without_1_to_ℝ := (ℝ_to_Addcirc ≫ₕ AddCirc_to_Circle).symm
-abbrev Circle_without_2_to_ℝ := (ℝ_to_Addcirc' ≫ₕ AddCirc_to_Circle).symm
-#check AddCirc_to_Circle
-
-/-- For Mathlib -/
-instance : ChartedSpace ℝ Circle where
-  atlas := {Circle_without_1_to_ℝ, Circle_without_2_to_ℝ}
-  chartAt c := if c.argEquiv.val ∈ Set.Ioo (1/2) (3/2) then Circle_without_2_to_ℝ else
-    Circle_without_1_to_ℝ
-  mem_chart_source := by
-    intro x
-    simp_all only [Circle.argEquiv_apply_coe, mem_Ioo]
-
-
-
-  chart_mem_atlas := by grind
-
-
-#synth IsManifold 𝓘(ℝ, ℝ × ℝ) 2 (ℝ × ℝ)
-#synth IsManifold 𝓘(ℝ) 2 Circle
-#check configurationSpaceHomProd.symm.isLocalHomeomorph.chartedSpace sorry
-
-
-def configurationSpaceEquivProd' : ConfigurationSpace ≃L[ℝ] Circle × Circle := by
-  sorry
-
-
--- use configurationSpaceEquivProd.Homeomorph.IsOpenEmbedding
 lemma  aux : Topology.IsOpenEmbedding ⇑configurationSpaceEquivProd.symm := by
   refine Topology.IsEmbedding.isOpenEmbedding_of_surjective ?_ ?_
   · refine { toIsInducing := ?_, injective := by exact  Equiv.injective configurationSpaceEquivProd.symm }
@@ -268,118 +233,48 @@ lemma  aux : Topology.IsOpenEmbedding ⇑configurationSpaceEquivProd.symm := by
       sorry
     · simp
       sorry
-
-
-
-
   · exact Equiv.surjective configurationSpaceEquivProd.symm
 
+--- benutze  IsLocalHomeomorph.chartedSpace für den ChartedSpace
+lemma localHomeo : IsLocalHomeomorph configurationSpaceHomProd.symm :=
+  configurationSpaceHomProd.symm.isLocalHomeomorph
 
-instance : ChartedSpace (Space 2) ConfigurationSpace where
-  atlas := {{ toFun c := ⟨![c.φ₁.argEquiv, c.φ₂.argEquiv]⟩
-              invFun r := ⟨Circle.exp (r 0), Circle.exp (r 1)⟩
-              source := configurationSpaceEquivProd.symm '' (univ \ {⟨-1, by simp [Submonoid.unitSphere]⟩})
-                ×ˢ (univ \ {⟨-1, by simp [Submonoid.unitSphere]⟩})
-              target := prodToSpace '' (Ioo (-π) π) ×ˢ (Ioo (-π) π)
-              map_source' := by
-                simp [configurationSpaceEquivProd, Equiv.coe_fn_mk, image_prod, mem_image2,
-                  mem_diff, mem_univ, mem_singleton_iff, true_and, prodToSpace,
-                  Circle.argEquiv_apply_coe, mem_image, mem_prod, mem_Ioo, Space.mk.injEq,
-                  Matrix.vecCons_inj, and_true, Prod.exists, exists_eq_right_right, exists_eq_right,
-                  forall_exists_index, and_imp]
-                intro c x1 hx1 x2 hx2 h1
-                subst h1
-                dsimp only
-                constructor
-                · constructor
-                  · exact Complex.neg_pi_lt_arg _
-                  · rw [Complex.arg_lt_pi_iff]
-                    rw [Circle.ext_iff, Complex.ext_iff] at hx1
-                    simp at hx1
-                    sorry -- correct
-                · constructor
-                  · exact Complex.neg_pi_lt_arg _
-                  · sorry
+noncomputable instance : ChartedSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace :=
+  localHomeo.chartedSpace <| Homeomorph.surjective configurationSpaceHomProd.symm
 
-              map_target' := by
-                simp [prodToSpace, mem_image, mem_prod, mem_Ioo, Prod.exists,
-                  configurationSpaceEquivProd, Equiv.coe_fn_mk, image_prod, Fin.isValue, mem_image2,
-                  mem_diff, mem_univ, mem_singleton_iff, true_and, ConfigurationSpace.mk.injEq,
-                  exists_eq_right_right, forall_exists_index, and_imp]
-                intro x r1 r2 h1 h2 h3 h4 h5
-                subst h5
-                dsimp
-                constructor
-                · have h6 :  ⟨-1, instChartedSpaceSpaceOfNatNatConfigurationSpace._proof_1⟩ = Circle.exp π := by
-                    ext
-                    simp
-                  rw [h6]
-                  rw [Circle.exp_eq_exp]
-                  simp
-                  intro z
-                  by_cases hC : 0 ≤ z
-                  · suffices r1 < π + z * 2 * π by grind
-                    apply lt_of_lt_of_le h2
-                    simp
-                    sorry
-                  · suffices π + z * 2 * π < r1 by grind
-                    sorry
-                sorry
+instance : Nonempty ConfigurationSpace := ⟨⟨1, 1⟩⟩
 
-              left_inv' := by simp
-              right_inv' := by
-                simp only [prodToSpace, mem_image, mem_prod, mem_Ioo, Prod.exists, Fin.isValue,
-                  Circle.argEquiv_apply_coe, Circle.coe_exp, forall_exists_index, and_imp]
-                intro x r1 r2 h1 h2 h3 h4 h1
-                subst h1
-                ext i
-                fin_cases i
-                · simp only [Fin.isValue, Complex.arg_exp, Complex.mul_im, Complex.ofReal_re,
-                  Complex.I_im, mul_one, Complex.ofReal_im, Complex.I_re, mul_zero, add_zero,
-                  Fin.zero_eta, Matrix.cons_val_zero, toIocMod_eq_iff, Set.mem_Ioc,
-                  le_neg_add_iff_add_le, zsmul_eq_mul, left_eq_add, mul_eq_zero, Int.cast_eq_zero,
-                  OfNat.ofNat_ne_zero, pi_ne_zero, or_self, or_false, exists_eq, and_true]
-                  grind
-                · simp only [Fin.isValue, Complex.arg_exp, Complex.mul_im, Complex.ofReal_re,
-                  Complex.I_im, mul_one, Complex.ofReal_im, Complex.I_re, mul_zero, add_zero,
-                  Fin.mk_one, Matrix.cons_val_one, Matrix.cons_val_fin_one, toIocMod_eq_iff,
-                  Set.mem_Ioc, le_neg_add_iff_add_le, zsmul_eq_mul, left_eq_add, mul_eq_zero,
-                  Int.cast_eq_zero, OfNat.ofNat_ne_zero, pi_ne_zero, or_self, or_false, exists_eq,
-                  and_true]
-                  grind
-              open_source := by
+--- ConfigurationSpace und Circle × Circle sind diffeomorph
+noncomputable def diffeo : Diffeomorph ((𝓡 1).prod (𝓡 1)) ((𝓡 1).prod (𝓡 1)) ConfigurationSpace (Circle × Circle) ω where
+  toFun := configurationSpaceHomProd
+  invFun := configurationSpaceHomProd.symm
+  contMDiff_toFun := by
+    simp [Equiv.coe_fn_mk, configurationSpaceHomProd, configurationSpaceEquivProd]
+    sorry
+  contMDiff_invFun := by sorry
 
-                rw [← Topology.IsOpenEmbedding.isOpen_iff_image_isOpen ?_]
-                · apply IsOpen.prod
-                  · rw [← isClosed_compl_iff]
-                    rw [compl_diff]
-                    simp
-                  · sorry -- correct
-                · apply Homeomorph.isOpenEmbedding
+--- TODO Manifold M -> Diffeo M N -> Manifold N in die Mathlib refine
+
+-- vlt über isManifold_of_contDiffOn ??
+
+lemma contdiffon :  ∀ (e e' : OpenPartialHomeomorph ConfigurationSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1)))),
+  e ∈ atlas (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace →
+    e' ∈ atlas (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace →
+      ContDiffOn ℝ ω (↑((𝓡 1).prod (𝓡 1)) ∘ ↑(e.symm ≫ₕ e') ∘ ↑((𝓡 1).prod (𝓡 1)).symm)
+        (↑((𝓡 1).prod (𝓡 1)).symm ⁻¹' (e.symm ≫ₕ e').source ∩ range ↑((𝓡 1).prod (𝓡 1))) := by
+  intro e1 e2 h1 h2
 
 
+instance : IsManifold ((𝓡 1).prod (𝓡 1)) ω ConfigurationSpace := isManifold_of_contDiffOn _ _ _
+  contdiffon
 
 
-                  sorry
+#synth IsManifold 𝓘(ℝ,(EuclideanSpace ℝ (Fin 1))) ⊤ Circle
 
+#synth IsManifold (𝓡 1) ⊤ Circle
 
-              open_target := by
-                sorry
-              continuousOn_toFun := by
-                simp only [Circle.argEquiv_apply_coe]
-                sorry
+#synth IsManifold ((𝓡 1).prod (𝓡 1)) ⊤ (Circle × Circle)
 
-
-
-              continuousOn_invFun := sorry  } }
-  chartAt := sorry
-  mem_chart_source := sorry
-  chart_mem_atlas := sorry
-
-#check IsManifold
-
-instance : IsManifold (𝓘(ℝ, Space 2)) ⊤ ConfigurationSpace where
-  compatible := by sorry
 
 
 noncomputable section
