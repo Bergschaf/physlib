@@ -217,40 +217,69 @@ noncomputable def configurationSpaceHomProd : ConfigurationSpace  ≃ₜ Circle 
   · grind
   )
 
-lemma  aux' : Topology.IsOpenEmbedding ⇑configurationSpaceEquivProd:= by sorry
-
-lemma  aux : Topology.IsOpenEmbedding ⇑configurationSpaceEquivProd.symm := by
-  refine Topology.IsEmbedding.isOpenEmbedding_of_surjective ?_ ?_
-  · refine { toIsInducing := ?_, injective := by exact  Equiv.injective configurationSpaceEquivProd.symm }
-    rw [Topology.isInducing_iff]
-    ext i
-    rw [instTopologicalSpaceConfigurationSpace, Equiv.topologicalSpace, TopologicalSpace.induced]
-    simp [IsOpen]
-    constructor
-    · intro h
-      use (configurationSpaceEquivProd.symm '' i)
-      simp
-      sorry
-    · simp
-      sorry
-  · exact Equiv.surjective configurationSpaceEquivProd.symm
-
+#check configurationSpaceHomProd.toOpenPartialHomeomorph
 --- benutze  IsLocalHomeomorph.chartedSpace für den ChartedSpace
 lemma localHomeo : IsLocalHomeomorph configurationSpaceHomProd.symm :=
   configurationSpaceHomProd.symm.isLocalHomeomorph
 
-noncomputable instance : ChartedSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace :=
+noncomputable instance instChartedSpaceConfigurationSpace : ChartedSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace :=
   localHomeo.chartedSpace <| Homeomorph.surjective configurationSpaceHomProd.symm
+
+lemma ConfigurationSpace.chartEqProdCircleSymm (c : ConfigurationSpace) : (chartAt (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) c).symm.toFun' =
+     configurationSpaceHomProd.toOpenPartialHomeomorph.symm ∘ (OpenPartialHomeomorph.prod (chartAt _ c.φ₁) (chartAt _ c.φ₂)).symm :=  by
+  sorry
+
 
 instance : Nonempty ConfigurationSpace := ⟨⟨1, 1⟩⟩
 
+#check contMDiffWithinAt_fst
+
+lemma test (ω : WithTop ℕ∞) (x : ConfigurationSpace) : (↑(extChartAt (𝓡 1) x.φ₁) ∘ ConfigurationSpace.φ₁ ∘ ↑(extChartAt ((𝓡 1).prod (𝓡 1)) x).symm)
+     = Prod.fst := by
+  simp
+  ext v i
+  simp
+  have h : PartialEquiv.toFun (PartialEquiv.refl (EuclideanSpace ℝ (Fin 1) × EuclideanSpace ℝ (Fin 1))).symm v = v := by rfl
+  change ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) ((chartAt (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) x).symm v).φ₁).ofLp i = _
+  sorry
+
+lemma OpenPartialHomeomorph.trans_symm_toFun {X Y Z : Type*} [TopologicalSpace X] [TopologicalSpace Y] [TopologicalSpace Z]
+  (f : OpenPartialHomeomorph X Y) (g : OpenPartialHomeomorph Y Z) :
+   (f.trans g).symm.toFun' = f.symm ∘ g.symm := by simp
+
+#check  OpenPartialHomeomorph.eq_symm_apply
+
+lemma test2 {x : ConfigurationSpace}: (id ∘
+    (fun p =>
+        ((chartAt (EuclideanSpace ℝ (Fin 1)) (configurationSpaceHomProd x).1) p.1,
+          (chartAt (EuclideanSpace ℝ (Fin 1)) (configurationSpaceHomProd x).2) p.2)) ∘
+      ⇑configurationSpaceHomProd ∘
+        (⇑configurationSpaceHomProd.symm ∘ fun p =>
+            ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁).symm p.1,
+              (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂).symm p.2)) ∘
+          ↑(PartialEquiv.refl (EuclideanSpace ℝ (Fin 1) × EuclideanSpace ℝ (Fin 1))).symm) = id := by
+ext v i
+simp [configurationSpaceHomProd, configurationSpaceEquivProd]
+· rw [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) ⟨trivial, trivial⟩]
+· simp [configurationSpaceHomProd, configurationSpaceEquivProd]
+  rw [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂) ⟨trivial, trivial⟩]
+
 --- ConfigurationSpace und Circle × Circle sind diffeomorph
+--set_option pp.all true in
 noncomputable def diffeo : Diffeomorph ((𝓡 1).prod (𝓡 1)) ((𝓡 1).prod (𝓡 1)) ConfigurationSpace (Circle × Circle) ω where
   toFun := configurationSpaceHomProd
   invFun := configurationSpaceHomProd.symm
   contMDiff_toFun := by
-    simp [Equiv.coe_fn_mk, configurationSpaceHomProd, configurationSpaceEquivProd]
-    sorry
+    rw [ContMDiff]
+    intro x
+    rw [contMDiffAt_iff]
+    constructor
+    · simp
+      exact map_continuousAt configurationSpaceHomProd x
+    simp [ConfigurationSpace.chartEqProdCircleSymm, Function.comp_assoc ]
+    simp_rw [ModelProd]
+    rw [test2]
+    exact contDiffWithinAt_id
   contMDiff_invFun := by sorry
 
 --- TODO Manifold M -> Diffeo M N -> Manifold N in die Mathlib refine
@@ -263,11 +292,11 @@ lemma contdiffon :  ∀ (e e' : OpenPartialHomeomorph ConfigurationSpace (ModelP
       ContDiffOn ℝ ω (↑((𝓡 1).prod (𝓡 1)) ∘ ↑(e.symm ≫ₕ e') ∘ ↑((𝓡 1).prod (𝓡 1)).symm)
         (↑((𝓡 1).prod (𝓡 1)).symm ⁻¹' (e.symm ≫ₕ e').source ∩ range ↑((𝓡 1).prod (𝓡 1))) := by
   intro e1 e2 h1 h2
+  sorry
 
 
 instance : IsManifold ((𝓡 1).prod (𝓡 1)) ω ConfigurationSpace := isManifold_of_contDiffOn _ _ _
   contdiffon
-
 
 #synth IsManifold 𝓘(ℝ,(EuclideanSpace ℝ (Fin 1))) ⊤ Circle
 
