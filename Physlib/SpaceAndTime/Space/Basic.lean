@@ -7,10 +7,7 @@ module
 
 public import Physlib.Meta.TODO.Basic
 public import Mathlib.Analysis.InnerProductSpace.PiL2
-public import Mathlib.Geometry.Manifold.ContMDiff.Defs
-public import Mathlib.Geometry.Manifold.IsManifold.Basic
-public import Mathlib.Analysis.InnerProductSpace.PiL2
-public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Geometry.Manifold.Instances.Real -- for 𝓡 notation
 /-!
 
 # Space
@@ -256,10 +253,6 @@ instance {d : ℕ} : Nontrivial (Space d.succ) where
 
 -/
 
-TODO "Fix the manifold structure on `Space d`. In particular, we should not need to
-  define `manifoldStructure`. Instead, we should be able to give `Space d` an instance
-  of `IsManifold` directly."
-
 noncomputable def homEuclideanSpace (d : ℕ) : Space d ≃ₜ EuclideanSpace ℝ (Fin d) where
   toFun s := EuclideanSpace.equiv (Fin d) ℝ|>.symm s.val
   invFun v := ⟨EuclideanSpace.equiv (Fin d) ℝ v⟩
@@ -276,7 +269,7 @@ noncomputable def homEuclideanSpace (d : ℕ) : Space d ≃ₜ EuclideanSpace �
 
 open Manifold Real
 
-noncomputable instance (d : ℕ) : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) where
+noncomputable instance (priority := high) instChartedSpaceSpace {d : ℕ} : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) where
   atlas := {homEuclideanSpace d|>.toOpenPartialHomeomorph}
   chartAt _ := homEuclideanSpace d|>.toOpenPartialHomeomorph
   mem_chart_source := by simp
@@ -285,7 +278,7 @@ noncomputable instance (d : ℕ) : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Sp
 lemma atlas_eq_singleton {d : ℕ} :
   atlas (EuclideanSpace ℝ (Fin d)) (Space d) = {homEuclideanSpace d|>.toOpenPartialHomeomorph} := rfl
 
-instance {d : ℕ} : IsManifold 𝓘(ℝ, EuclideanSpace ℝ (Fin d)) ⊤ (Space d) where
+instance {d : ℕ} : IsManifold (𝓡 d) ⊤ (Space d) where
   compatible := by
     simp only [atlas_eq_singleton, Set.mem_singleton_iff, forall_eq_apply_imp_iff, forall_eq]
     have h :
