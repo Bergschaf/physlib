@@ -8,6 +8,9 @@ module
 public import Physlib.Meta.TODO.Basic
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Geometry.Manifold.ContMDiff.Defs
+public import Mathlib.Geometry.Manifold.IsManifold.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 /-!
 
 # Space
@@ -257,47 +260,30 @@ TODO "Fix the manifold structure on `Space d`. In particular, we should not need
   define `manifoldStructure`. Instead, we should be able to give `Space d` an instance
   of `IsManifold` directly."
 
-/-- The manifold structure on `Space d`. -/
-noncomputable def manifoldStructure (d : ℕ) :
-    ModelWithCorners ℝ (EuclideanSpace ℝ (Fin d)) (Space d) where
-  toFun := (Equiv.vaddConst (Classical.choice Space.instNonempty)).symm
-  invFun := Equiv.vaddConst (Classical.choice Space.instNonempty)
-  source := Set.univ
-  target := Set.univ
-  map_source' := by simp
-  map_target' := by simp
-  left_inv' := by simp
-  right_inv' := by simp
-  source_eq := by simp
-  convex_range' := by
-    rw [dif_pos (instIsRCLikeNormedField ℝ), Equiv.range_eq_univ]
-    exact fun _ _ _ ↦ by simp
-  nonempty_interior' := by
-    rw [Equiv.range_eq_univ]
-    simp
+noncomputable def homEuclideanSpace (d : ℕ) : Space d ≃ₜ EuclideanSpace ℝ (Fin d) where
+  toFun s := EuclideanSpace.equiv (Fin d) ℝ|>.symm s.val
+  invFun v := ⟨EuclideanSpace.equiv (Fin d) ℝ v⟩
   continuous_toFun := by
-    simp only [Equiv.coe_vaddConst_symm]
-    fun_prop
+    rw [Metric.continuous_iff]
+    intro b ε h_ε
+    use ε
+    simp_all [dist, Real.sqrt_eq_rpow]
   continuous_invFun := by
-    simp only [Equiv.coe_vaddConst]
-    fun_prop
+    rw [Metric.continuous_iff]
+    intro b ε h_ε
+    use ε
+    simp_all [dist, Real.sqrt_eq_rpow]
 
-@[simp]
-lemma manifoldStructure_comp_manifoldStructure_symm {d : ℕ} :
-    (↑(manifoldStructure d) ∘ ↑(manifoldStructure d).symm) = id := by
-  ext1 x
-  simpa using (manifoldStructure d).right_inv' (x := x) (by simp [manifoldStructure])
+open Manifold Real
 
-lemma manifoldStructure_comp_manifoldStructure_symm_apply {d : ℕ}
-    (x : EuclideanSpace ℝ (Fin d)) :
-    (manifoldStructure d) ((manifoldStructure d).symm x) = x := by
-  simpa using (manifoldStructure d).right_inv' (x := x) (by simp [manifoldStructure])
+noncomputable instance (d : ℕ) : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) where
+  atlas := {homEuclideanSpace d|>.toOpenPartialHomeomorph}
+  chartAt _ := homEuclideanSpace d|>.toOpenPartialHomeomorph
+  mem_chart_source := by simp
+  chart_mem_atlas := by grind
 
-@[simp]
-lemma range_manifoldStructure {d : ℕ} :
-    (Set.range ↑(manifoldStructure d)) = Set.univ := by
-  ext x
-  simpa using ⟨(manifoldStructure d).symm x, manifoldStructure_comp_manifoldStructure_symm_apply x⟩
+lemma atlas_eq_singleton {d : ℕ} :
+  atlas (EuclideanSpace ℝ (Fin d)) (Space d) = {homEuclideanSpace d|>.toOpenPartialHomeomorph} := rfl
 
 open Manifold in
 lemma contMDiff_vaddConst (d : ℕ) : ContMDiff
