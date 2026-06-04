@@ -222,7 +222,7 @@ def r₂ : ConfigurationSpace → Space 2 := fun C ↦
 
 def V₁ : ConfigurationSpace → ℝ := fun C ↦
   P.m₁.val * P.g * (r₁ P C 0)
-
+@[inline]
 def T₁ (x : ConfigurationSpace) (v : TangentSpace ((𝓡 1).prod (𝓡 1)) x) : ℝ :=
   1/2 * P.m₁.val * P.l₁.val^2 * (v.1 0 ^ 2)
 
@@ -230,27 +230,20 @@ def T₁ (x : ConfigurationSpace) (v : TangentSpace ((𝓡 1).prod (𝓡 1)) x) 
 def kineticEnergy (m : ℝ) (x : Space 2) (v : TangentSpace (Space.manifoldStructure 2) x) : ℝ :=
   1/2 * m * ((v.1 0)^2 + (v.1 1)^2)
 
+lemma mfderiv_r₁_eq (c : ConfigurationSpace) :
+    mfderiv ((𝓡 1).prod (𝓡 1)) (Space.manifoldStructure 2) (r₁ P) c = sorry := by
+  sorry
 
-/-- Zeitableitung von einer Funktion zu Space 2 -/
-def d_t_1 (q : TimeMan → Space 2) := mfderiv (modelWithCornersSelf ℝ ℝ) (Space.manifoldStructure 2) q
-
-
-/-- Zeitableitung von einer Funktion zu ConfigurationSpace -/
-def d_t_2 (q : TimeMan → ConfigurationSpace) := mfderiv (modelWithCornersSelf ℝ ℝ) ((𝓡 1).prod (𝓡 1)) q
-
-lemma mfderiv_r₁_eq (c : ConfigurationSpace) : ∂ₜ
-
---    mfderiv ((𝓡 1).prod (𝓡 1)) (Space.manifoldStructure 2) (r₁ P) c = sorry := by
-
-
+notation "Mₛ" => Space.manifoldStructure 2
+notation "Mᵣ" => modelWithCornersSelf ℝ ℝ
 /--
 Let q : t -> (q_1, q_2) be a trajectory.
 The kinetic Energy of the
 -/
 lemma T₁_eq_kineticEnergy (q : TimeMan → ConfigurationSpace) (t : TimeMan) :
-    T₁ P (q t) (d_t_2 q t t.val) = kineticEnergy P.m₁.val (r₁ P (q t)) (d_t_1 ((r₁ P) ∘ q) t t.val) := by
-  rw [T₁, kineticEnergy, d_t_1, d_t_2]
-  ring_nf
+    T₁ P (q t) (mfderiv Mᵣ ((𝓡 1).prod (𝓡 1)) q t t.val) =
+      kineticEnergy P.m₁.val (r₁ P (q t)) (mfderiv Mᵣ Mₛ ((r₁ P) ∘ q) t t.val) := by
+  sorry
 
 
 
