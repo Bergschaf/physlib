@@ -24,6 +24,8 @@ public import Mathlib.Geometry.Manifold.Instances.Sphere
 public import Mathlib.Topology.IsLocalHomeomorph
 public import Mathlib.Topology.Algebra.Module.Equiv
 public import Mathlib.Analysis.Normed.Module.TransferInstance
+public import Physlib.SpaceAndTime.Time.TimeMan
+public import Physlib.ClassicalMechanics.Pendulum.ToMathlib
 /-!
 # Coplanar Double Pendulum
 ### Tag: LnL_1.5.1
@@ -85,69 +87,6 @@ $$
 
 -- This is already in mathlib but not in the version imported here
 
-section IsLocalHomeomorph
-variable {H : Type u} {H' : Type*} {M : Type*} {M' : Type*} {M'' : Type*}
-variable [TopologicalSpace M] [TopologicalSpace M'] [TopologicalSpace H] [ChartedSpace H M]
-open Set OpenPartialHomeomorph Manifold
-open TopologicalSpace Topology
-variable {X Y Z : Type*} [TopologicalSpace X] [TopologicalSpace Y] [TopologicalSpace Z] (g : Y → Z)
-  {f : X → Y} (s : Set X) (t : Set Y)
-
-namespace IsLocalHomeomorph
-variable (hf : IsLocalHomeomorph f) {x : X}
-variable (x) in
-/-- A chosen local inverse for a local homeomorphism `f` at a point `x`. -/
-noncomputable def localInverseAt : OpenPartialHomeomorph Y X := (hf x).choose.symm
-
-/-- The point `x` lies in the target of `localInverseAt x`. -/
-@[grind =>, simp] lemma self_mem_localInverseAt_target : x ∈ (hf.localInverseAt x).target :=
-  (hf x).choose_spec.1
-variable (x) in
-/-- The inverse function of `localInverseAt x` coincides with `f`. -/
-@[simp] lemma localInverseAt_symm : (hf.localInverseAt x).symm = f :=
-  (hf x).choose_spec.2.symm
-/-- The point `f x` lies in the source of `localInverseAt x`. -/
-@[grind =>, simp] lemma apply_self_mem_localInverseAt_source :
-    f x ∈ (hf.localInverseAt x).source := by
-  rw [← congrFun (hf.localInverseAt_symm x)]
-  exact (hf.localInverseAt x).map_target hf.self_mem_localInverseAt_target
-/-- The function `f` is injective on the target of `localInverseAt x`. -/
-lemma injOn_localInverseAt_target : (hf.localInverseAt x).target.InjOn f := by
-  rw [Set.EqOn.injOn_iff (f₂ := (hf.localInverseAt x).symm) (fun y _ ↦ by simp)]
-  exact (hf.localInverseAt x).symm.injOn
-/-- If `y` lies in the source of `localInverseAt x`, then `f (localInverseAt x y) = y`. -/
-@[grind .] lemma apply_localInverseAt_of_mem {y : Y} (hx : y ∈ (hf.localInverseAt x).source) :
-    f (hf.localInverseAt x y) = y := by
-  rw [← congrFun (hf.localInverseAt_symm x)]
-  exact (hf.localInverseAt x).left_inv hx
-/-- The function `localInverseAt x` sends `f x` back to `x`. -/
-@[simp] lemma localInverseAt_apply_self : hf.localInverseAt x (f x) = x :=
-  hf.injOn_localInverseAt_target (by simp) hf.self_mem_localInverseAt_target <|
-    hf.apply_localInverseAt_of_mem hf.apply_self_mem_localInverseAt_source
-
-end IsLocalHomeomorph
-
-/-- Given a right inverse for a local homeomorphism `f : M → M'`, endow `M'` with a `ChartedSpace`
-structure by pushing forward the `ChartedSpace` structure from `M`. -/
-@[implicit_reducible]
-noncomputable def IsLocalHomeomorph.chartedSpaceOfRightInverse
-    {f : M → M'} (hf : IsLocalHomeomorph f) {g : M' → M} (hg : Function.RightInverse g f) :
-    ChartedSpace H M' where
-  atlas := {(hf.localInverseAt (g q)).trans (chartAt H (g q)) | q : M'}
-  chartAt q := (hf.localInverseAt (g q)).trans (chartAt H (g q))
-  mem_chart_source q := by
-    nth_rw 3 [← hg.eq q]
-    simp
-  chart_mem_atlas := by simp
-/-- Given a surjective local homeomorphism `f : M → M'`, endow `M'` with a `ChartedSpace` structure
-by pushing forward the `ChartedSpace` structure from `M`. -/
-@[implicit_reducible]
-noncomputable def IsLocalHomeomorph.chartedSpace
-    {f : M → M'} (hf : IsLocalHomeomorph f) (hf' : Function.Surjective f) :
-    ChartedSpace H M' :=
-  hf.chartedSpaceOfRightInverse hf'.hasRightInverse.choose_spec
-end IsLocalHomeomorph
-
 namespace ClassicalMechanics
 /-
 structure HolonomicLagrangeProblem where
@@ -196,7 +135,6 @@ structure ConfigurationSpace where
     φ₁ : Circle
     φ₂ : Circle
 
-def prodToSpace (p : ℝ × ℝ) : Space 2 := ⟨![p.1, p.2]⟩
 
 def configurationSpaceEquivProd : ConfigurationSpace ≃ Circle × Circle where
   toFun c := ⟨c.φ₁, c.φ₂⟩
@@ -214,55 +152,12 @@ noncomputable def configurationSpaceHomProd : ConfigurationSpace  ≃ₜ Circle 
     rcases h with ⟨s', ⟨h1,h2⟩⟩
     have := configurationSpaceEquivProd.surjective.preimage_injective h2
     grind
-  · grind
-  )
-
-#check configurationSpaceHomProd.toOpenPartialHomeomorph
---- benutze  IsLocalHomeomorph.chartedSpace für den ChartedSpace
-lemma localHomeo : IsLocalHomeomorph configurationSpaceHomProd.symm :=
-  configurationSpaceHomProd.symm.isLocalHomeomorph
-
-noncomputable instance instChartedSpaceConfigurationSpace : ChartedSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace :=
-  localHomeo.chartedSpace <| Homeomorph.surjective configurationSpaceHomProd.symm
-
-lemma ConfigurationSpace.chartEqProdCircleSymm (c : ConfigurationSpace) : (chartAt (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) c).symm.toFun' =
-     configurationSpaceHomProd.toOpenPartialHomeomorph.symm ∘ (OpenPartialHomeomorph.prod (chartAt _ c.φ₁) (chartAt _ c.φ₂)).symm :=  by
-  sorry
+  · grind)
 
 
-instance : Nonempty ConfigurationSpace := ⟨⟨1, 1⟩⟩
-
-#check contMDiffWithinAt_fst
-
-lemma test (ω : WithTop ℕ∞) (x : ConfigurationSpace) : (↑(extChartAt (𝓡 1) x.φ₁) ∘ ConfigurationSpace.φ₁ ∘ ↑(extChartAt ((𝓡 1).prod (𝓡 1)) x).symm)
-     = Prod.fst := by
-  simp
-  ext v i
-  simp
-  have h : PartialEquiv.toFun (PartialEquiv.refl (EuclideanSpace ℝ (Fin 1) × EuclideanSpace ℝ (Fin 1))).symm v = v := by rfl
-  change ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) ((chartAt (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) x).symm v).φ₁).ofLp i = _
-  sorry
-
-lemma OpenPartialHomeomorph.trans_symm_toFun {X Y Z : Type*} [TopologicalSpace X] [TopologicalSpace Y] [TopologicalSpace Z]
-  (f : OpenPartialHomeomorph X Y) (g : OpenPartialHomeomorph Y Z) :
-   (f.trans g).symm.toFun' = f.symm ∘ g.symm := by simp
-
-#check  OpenPartialHomeomorph.eq_symm_apply
-
-lemma test2 {x : ConfigurationSpace}: (id ∘
-    (fun p =>
-        ((chartAt (EuclideanSpace ℝ (Fin 1)) (configurationSpaceHomProd x).1) p.1,
-          (chartAt (EuclideanSpace ℝ (Fin 1)) (configurationSpaceHomProd x).2) p.2)) ∘
-      ⇑configurationSpaceHomProd ∘
-        (⇑configurationSpaceHomProd.symm ∘ fun p =>
-            ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁).symm p.1,
-              (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂).symm p.2)) ∘
-          ↑(PartialEquiv.refl (EuclideanSpace ℝ (Fin 1) × EuclideanSpace ℝ (Fin 1))).symm) = id := by
-ext v i
-simp [configurationSpaceHomProd, configurationSpaceEquivProd]
-· rw [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) ⟨trivial, trivial⟩]
-· simp [configurationSpaceHomProd, configurationSpaceEquivProd]
-  rw [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂) ⟨trivial, trivial⟩]
+noncomputable instance instChartedSpaceConfigurationSpace :
+    ChartedSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace :=
+  configurationSpaceHomProd.chartedSpace
 
 --- ConfigurationSpace und Circle × Circle sind diffeomorph
 --set_option pp.all true in
@@ -276,27 +171,22 @@ noncomputable def diffeo : Diffeomorph ((𝓡 1).prod (𝓡 1)) ((𝓡 1).prod (
     constructor
     · simp
       exact map_continuousAt configurationSpaceHomProd x
-    simp [ConfigurationSpace.chartEqProdCircleSymm, Function.comp_assoc ]
+    simp [Function.comp_assoc, configurationSpaceHomProd.chartedSpace_chartAt_eq]
     simp_rw [ModelProd]
-    rw [test2]
+    simp [configurationSpaceHomProd, configurationSpaceEquivProd]
+    have h : ((fun p => ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) p.1, (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂) p.2)) ∘
+    (fun c : ConfigurationSpace => (c.φ₁, c.φ₂)) ∘
+      (fun p => { φ₁ := p.1, φ₂ := p.2 }) ∘ fun p =>
+        ((chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁).symm p.1, (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂).symm p.2)) = id := by
+      ext v i
+      simp [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₁) ⟨trivial, trivial⟩]
+      simp [OpenPartialHomeomorph.right_inv (chartAt (EuclideanSpace ℝ (Fin 1)) x.φ₂) ⟨trivial, trivial⟩]
+    rw [h]
     exact contDiffWithinAt_id
   contMDiff_invFun := by sorry
 
---- TODO Manifold M -> Diffeo M N -> Manifold N in die Mathlib refine
-
--- vlt über isManifold_of_contDiffOn ??
-
-lemma contdiffon :  ∀ (e e' : OpenPartialHomeomorph ConfigurationSpace (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1)))),
-  e ∈ atlas (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace →
-    e' ∈ atlas (ModelProd (EuclideanSpace ℝ (Fin 1)) (EuclideanSpace ℝ (Fin 1))) ConfigurationSpace →
-      ContDiffOn ℝ ω (↑((𝓡 1).prod (𝓡 1)) ∘ ↑(e.symm ≫ₕ e') ∘ ↑((𝓡 1).prod (𝓡 1)).symm)
-        (↑((𝓡 1).prod (𝓡 1)).symm ⁻¹' (e.symm ≫ₕ e').source ∩ range ↑((𝓡 1).prod (𝓡 1))) := by
-  intro e1 e2 h1 h2
-  sorry
-
-
-instance : IsManifold ((𝓡 1).prod (𝓡 1)) ω ConfigurationSpace := isManifold_of_contDiffOn _ _ _
-  contdiffon
+instance : IsManifold ((𝓡 1).prod (𝓡 1)) ⊤ ConfigurationSpace := diffeo.isManifold
+  diffeo.toHomeomorph.chartedSpace_atlas_eq
 
 #synth IsManifold 𝓘(ℝ,(EuclideanSpace ℝ (Fin 1))) ⊤ Circle
 
@@ -304,7 +194,7 @@ instance : IsManifold ((𝓡 1).prod (𝓡 1)) ω ConfigurationSpace := isManifo
 
 #synth IsManifold ((𝓡 1).prod (𝓡 1)) ⊤ (Circle × Circle)
 
-
+#synth IsManifold ((𝓡 1).prod (𝓡 1)) ⊤ ConfigurationSpace -- Sehr gut
 
 noncomputable section
 
@@ -327,38 +217,44 @@ def r₁ : ConfigurationSpace → Space 2 := fun C ↦
 def r₂ : ConfigurationSpace → Space 2 := fun C ↦
   ⟨r₁ P C + ![P.l₂.val * sin (φ₂ C), - P.l₂.val * cos (φ₂ C)]⟩
 
+/-- Wahrscheinlich nicht die Time derivative of r₂ -/
+--def r₂_dot := mfderiv ((𝓡 1).prod (𝓡 1)) (Space.manifoldStructure 2) (r₂ P)
+
 def V₁ : ConfigurationSpace → ℝ := fun C ↦
   P.m₁.val * P.g * (r₁ P C 0)
 
-def T₁ (x : ConfigurationSpace) (v : TangentSpace (𝓘(ℝ, (Space 2))) x) : ℝ :=
-  1/2 * P.m₁.val * P.l₁.val^2 * (v.val 0 ^ 2)
+def T₁ (x : ConfigurationSpace) (v : TangentSpace ((𝓡 1).prod (𝓡 1)) x) : ℝ :=
+  1/2 * P.m₁.val * P.l₁.val^2 * (v.1 0 ^ 2)
+
+/-- The kinetic Energy in Euclidean Space -/
+def kineticEnergy (m : ℝ) (x : Space 2) (v : TangentSpace (Space.manifoldStructure 2) x) : ℝ :=
+  1/2 * m * ((v.1 0)^2 + (v.1 1)^2)
+
+
+/-- Zeitableitung von einer Funktion zu Space 2 -/
+def d_t_1 (q : TimeMan → Space 2) := mfderiv (modelWithCornersSelf ℝ ℝ) (Space.manifoldStructure 2) q
+
+
+/-- Zeitableitung von einer Funktion zu ConfigurationSpace -/
+def d_t_2 (q : TimeMan → ConfigurationSpace) := mfderiv (modelWithCornersSelf ℝ ℝ) ((𝓡 1).prod (𝓡 1)) q
+
+lemma mfderiv_r₁_eq (c : ConfigurationSpace) : ∂ₜ
+
+--    mfderiv ((𝓡 1).prod (𝓡 1)) (Space.manifoldStructure 2) (r₁ P) c = sorry := by
+
+
+/--
+Let q : t -> (q_1, q_2) be a trajectory.
+The kinetic Energy of the
+-/
+lemma T₁_eq_kineticEnergy (q : TimeMan → ConfigurationSpace) (t : TimeMan) :
+    T₁ P (q t) (d_t_2 q t t.val) = kineticEnergy P.m₁.val (r₁ P (q t)) (d_t_1 ((r₁ P) ∘ q) t t.val) := by
+  rw [T₁, kineticEnergy, d_t_1, d_t_2]
+  ring_nf
 
 
 
-lemma deriv_aux' (q : Time → ConfigurationSpace) (h : Differentiable ℝ q) {t : Time}:
-   ‖∂ₜ (r₁ P ∘ q) t‖^2 = ∑ i : Fin 2, (∂ₜ (fun x ↦ (r₁ P (q x) i)) t)^2 := by
 
-  rw [@EuclideanSpace.real_norm_sq_eq]
-  simp
-  rw [add_eq_add_iff_eq_and_eq]
-  constructor
-  · congr 1
-    sorry
-  · sorry
-  sorry
-
-def T₁_eq_euclid (q : Time → ConfigurationSpace) (h : Differentiable ℝ q) :
-    (fun t ↦ 1/2 * P.m₁.val * ‖deriv (r₁ P ∘ q) t‖^2) = (T₁ P) ∘ ∂ₜ q := by
-  ext t
-  simp only [one_div, Time.deriv, Function.comp_apply, T₁]
-  rw [fderiv_comp]
-  · simp
-    rw [EuclideanSpace.real_norm_sq_eq ((fderiv ℝ P.r₁ (q t)) ((fderiv ℝ q t) 1))]
-
-
-    sorry
-  · sorry
-  · exact Differentiable.differentiableAt h
 
 
 end
