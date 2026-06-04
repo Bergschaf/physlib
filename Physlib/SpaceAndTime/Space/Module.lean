@@ -734,7 +734,6 @@ lemma basis_eq_mfderiv_modelDiffeo_single (d : ℕ) (μ : Fin d) (x : Space d) :
   exact Eq.propIntro (fun a => Eq.symm a) fun a => (Eq.symm a)
 
 /-!
-
 ## Properties of vadd with module structure
 
 -/
