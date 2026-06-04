@@ -688,54 +688,6 @@ lemma oneEquiv_symm_measurePreserving : MeasurePreserving oneEquiv.symm volume v
 
 /-!
 
-## Relation to tangent space
-
--/
-
-open Manifold in
-set_option backward.isDefEq.respectTransparency false in
-/-- A diffeomorphism between the two different manifold structures on `Space d`,
-  that equivalent to `manifoldStructure d` and that equivalent to `𝓘(ℝ, Space d)` -/
-noncomputable def modelDiffeo {d} :
-    Diffeomorph (manifoldStructure d) 𝓘(ℝ, Space d) (Space d) (Space d) ⊤ where
-  toFun p := p
-  invFun p := p
-  left_inv _ := rfl
-  right_inv _ := rfl
-  contMDiff_toFun := by
-    refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
-    simp [manifoldStructure]
-    fun_prop
-  contMDiff_invFun := by
-    refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
-    simp [manifoldStructure]
-    fun_prop
-
-@[simp]
-lemma modelDiffeo_apply (p : Space d) :
-    modelDiffeo p = p := rfl
-
-open Manifold in
-/-- The derivative of `modelDiffeo` provides an equivalence between
-  `Space d` and `EuclideanSpace ℝ (Fin d)`. This equivalences takes the basis
-  of `EuclideanSpace ℝ (Fin d)` to the basis of `Space d`, and vice versa. -/
-lemma basis_eq_mfderiv_modelDiffeo_single (d : ℕ) (μ : Fin d) (x : Space d) :
-    basis μ = mfderiv (manifoldStructure d) 𝓘(ℝ, Space d) (modelDiffeo (d := d)) x
-      (EuclideanSpace.single μ 1) := by
-  simp [mfderiv]
-  rw [if_pos (modelDiffeo.mdifferentiable (WithTop.top_ne_zero)).mdifferentiableAt]
-  change _ = fderiv ℝ (manifoldStructure d).symm (manifoldStructure d x) (EuclideanSpace.single μ 1)
-  simp [manifoldStructure]
-  ext i
-  rw [fderiv_space_components _ _ (by fun_prop)]
-  simp only [vadd_apply, fderiv_add_const]
-  change _ = fderiv ℝ (EuclideanSpace.proj i) (x -ᵥ Classical.choice _) (EuclideanSpace.single μ 1)
-  simp only [basis_apply, ContinuousLinearMap.fderiv, PiLp.proj_apply, PiLp.single_apply]
-  congr 1
-  exact Eq.propIntro (fun a => Eq.symm a) fun a => (Eq.symm a)
-
-/-!
-
 ## Properties of vadd with module structure
 
 -/
