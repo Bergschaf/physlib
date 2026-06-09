@@ -8,6 +8,7 @@ module
 public import Physlib.Meta.TODO.Basic
 public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Geometry.Manifold.Instances.Real -- for 𝓡 notation
+public import Physlib.SpaceAndTime.Space.ToMathlib
 /-!
 
 # Space
@@ -266,18 +267,16 @@ noncomputable def homEuclideanSpace (d : ℕ) : Space d ≃ₜ EuclideanSpace �
     intro b ε h_ε
     use ε
     simp_all [dist, Real.sqrt_eq_rpow]
-
+#synth TopologicalSpace (Space d)
+#synth TopologicalSpace (EuclideanSpace ℝ (Fin d))
 open Manifold Real
 
-noncomputable instance (priority := high) instChartedSpaceSpace {d : ℕ} : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) where
-  atlas := {homEuclideanSpace d|>.toOpenPartialHomeomorph}
-  chartAt _ := homEuclideanSpace d|>.toOpenPartialHomeomorph
-  mem_chart_source := by simp
-  chart_mem_atlas := by grind
+noncomputable instance (priority := high) instChartedSpaceSpace {d : ℕ} :
+    ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) :=
+  (homEuclideanSpace d).symm.chartedSpace (EuclideanSpace ℝ (Fin d))
 
-lemma atlas_eq_singleton {d : ℕ} :
-  atlas (EuclideanSpace ℝ (Fin d)) (Space d) = {homEuclideanSpace d|>.toOpenPartialHomeomorph} := rfl
 
+/-
 open Manifold in
 lemma contMDiff_vaddConst (d : ℕ) : ContMDiff
     (manifoldStructure d) (𝓘(ℝ, EuclideanSpace ℝ (Fin d))) ⊤ (manifoldStructure d).toFun := by
@@ -289,6 +288,6 @@ lemma contMDiff_vaddConst (d : ℕ) : ContMDiff
     ModelWithCorners.toPartialEquiv_coe, PartialEquiv.refl_trans,
     ModelWithCorners.toPartialEquiv_coe_symm, manifoldStructure_comp_manifoldStructure_symm,
     CompTriple.comp_eq, ModelWithCorners.target_eq, Set.preimage_univ, Set.inter_univ]
-  exact contDiffOn_id
+  exact contDiffOn_id-/
 
 end Space
