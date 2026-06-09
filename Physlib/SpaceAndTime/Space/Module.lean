@@ -696,14 +696,16 @@ open Manifold in
 /-- A diffeomorphism between the two different manifold structures on `Space d`,
   that equivalent to `manifoldStructure d` and that equivalent to `𝓘(ℝ, Space d)` -/
 noncomputable def modelDiffeo {d} :
-    Diffeomorph (manifoldStructure d) 𝓘(ℝ, Space d) (Space d) (Space d) ⊤ where
-  toFun p := p
+    letI := (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
+    Diffeomorph (𝓡 d) 𝓘(ℝ, Space d) (Space d) (Space d) ⊤ where
+  __ := (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
+  toFun p :=
   invFun p := p
   left_inv _ := rfl
   right_inv _ := rfl
   contMDiff_toFun := by
     refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
-    simp [manifoldStructure]
+    simp [homEuclideanSpaceSpace]
     fun_prop
   contMDiff_invFun := by
     refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
