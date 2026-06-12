@@ -691,40 +691,20 @@ lemma oneEquiv_symm_measurePreserving : MeasurePreserving oneEquiv.symm volume v
 ## Relation to tangent space
 
 -/
-
 open Manifold in
 /-- A diffeomorphism between the two different manifold structures on `Space d`,
   that equivalent to `𝓡 d` and that equivalent to `𝓘(ℝ, Space d)` -/
-noncomputable def modelDiffeo {d} :
-    letI := (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
-    Diffeomorph (𝓡 d) 𝓘(ℝ, Space d) (Space d) (Space d) ⊤ where
-  __ := (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
+noncomputable def modelDiffeo {d} : Diffeomorph (𝓡 d) 𝓘(ℝ, Space d) (Space d) (Space d) ⊤ where
   toFun p := p
   invFun p := p
   left_inv _ := rfl
   right_inv _ := rfl
   contMDiff_toFun := by
-    sorry
-    /-simp
-    rw [← Function.id_def, ContMDiff]
-    intro x
-    rw [contMDiff_iff]
-    constructor
-    · fun_prop
-    simp-/
-
-
+    simp
+    refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
+    simp [← Function.id_def]
   contMDiff_invFun := by
     sorry
-    /-
-    simp [← Function.id_def]
-    refine contMDiff_iff.mpr ⟨continuous_id', fun x y => ?_⟩
-    simp
-
-
-    rw [← contMDiffOn_iff_contDiffOn]
-    apply contMDiffOn_chart
-    fun_prop-/
 
 @[simp]
 lemma modelDiffeo_apply (p : Space d) :
