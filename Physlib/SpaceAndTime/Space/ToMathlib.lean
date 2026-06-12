@@ -22,6 +22,7 @@ forward the `ChartedSpace` structure from `M`. -/
 public noncomputable def Homeomorph.chartedSpace (f : M ≃ₜ M') : ChartedSpace H M' :=
   f.isLocalHomeomorph.chartedSpace f.surjective
 
+
 open OpenPartialHomeomorph
 
 variable {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y]

@@ -274,8 +274,10 @@ noncomputable def homEuclideanSpaceSpace (d : ℕ) : EuclideanSpace ℝ (Fin d) 
     use ε
     simp_all [dist, Real.sqrt_eq_rpow]
 
+noncomputable instance (priority := high) (d : ℕ) : ChartedSpace (EuclideanSpace ℝ (Fin d)) (Space d) :=
+    (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
+
 instance (d : ℕ) :
-    letI := (homEuclideanSpaceSpace d).chartedSpace (EuclideanSpace ℝ (Fin d))
     IsManifold (𝓡 d) ⊤ (Space d) :=
   (homEuclideanSpaceSpace d).isManifold
 
