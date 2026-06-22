@@ -5,7 +5,6 @@ Authors: Joseph Tooby-Smith
 -/
 module
 
-public import Physlib.Electromagnetism.Kinematics.VectorPotential
 public import Physlib.Electromagnetism.Kinematics.ScalarPotential
 public import Physlib.Electromagnetism.Kinematics.FieldStrength
 public import Physlib.Electromagnetism.Basic
@@ -25,8 +24,6 @@ In this module we define the electric field, and prove lemmas about it.
 - `electricField` : The electric field from the electromagnetic potential.
 - `electricField_eq_fieldStrengthMatrix` : The electric field expressed in terms of the
   field strength tensor.
-- `DistElectromagneticPotential.electricField` : The electric field for
-  electromagnetic potentials which are distributions.
 
 ## iii. Table of contents
 
@@ -36,7 +33,6 @@ In this module we define the electric field, and prove lemmas about it.
 - D. Differentiability of the electric field
 - E. Time derivative of the vector potential in terms of the electric field
 - F. Derivatives of the electric field in terms of field strength tensor
-- G. Electric field for distributions
 
 ## iv. References
 
@@ -45,7 +41,6 @@ In this module we define the electric field, and prove lemmas about it.
 @[expose] public section
 namespace Electromagnetism
 open Module realLorentzTensor
-open IndexNotation
 open TensorSpecies
 open Tensor
 
@@ -75,6 +70,72 @@ noncomputable def electricField {d} (c : SpeedOfLight := 1)
 lemma electricField_eq {c : SpeedOfLight} (A : ElectromagneticPotential d) :
     A.electricField c = fun t x =>
       - ∇ (A.scalarPotential c t) x - ∂ₜ (fun t => A.vectorPotential c t x) t := rfl
+
+/-!
+
+## B. Relation to constructors
+
+-/
+
+open MeasureTheory Matrix Space InnerProductSpace Time in
+/-- The electric field of the electromagnetic potential created from the electric field
+  `E` and the magnetic field `B` is `E`, as long as Gauss's law for magnetism and
+  Faraday's law are satisfied. -/
+lemma ofElectromagneticField_electricField {c : SpeedOfLight}
+    (E : Time → Space 3 → EuclideanSpace ℝ (Fin 3)) (B : Time → Space 3 → EuclideanSpace ℝ (Fin 3))
+    (E_contDiff : ContDiff ℝ 1 ↿E) (B_contDiff : ContDiff ℝ 2 ↿B)
+    (B_grad : ∀ t, ∇ ⬝ (B t) = 0) (faraday : ∀ t x, curl (E t) x = - ∂ₜ (B · x) t) :
+    (ofElectromagneticField c E B).electricField c = E := by
+  have h0 := B_contDiff.of_le (m := 1) (by simp)
+  ext1 t
+  ext1 x
+  suffices h : E t x + ∂ₜ (fun t => (ofElectromagneticField c E B).vectorPotential c t x) t =
+      - ∇ ((ofElectromagneticField c E B).scalarPotential c t) x by
+    simp only [electricField]
+    rw [sub_eq_iff_eq_add', ← h, add_comm]
+  convert congrFun (eq_grad_integral_of_curl_zero (fun x => E t x +
+      ∂ₜ (fun t => (ofElectromagneticField c E B).vectorPotential c t x) t) ?_ ?_) x
+  · simp [ofElectromagneticField_scalarPotential_eq_add_vectorPotential _ _ B (by fun_prop)]
+    rw [fun_grad_neg]
+    simp
+  · simp only [Time.deriv]
+    fun_prop
+  · rw [fun_curl_add]
+    ext1 x
+    simp [faraday]
+    suffices h : ∂ₜ (B · x) t = curl (fun x =>
+        ∂ₜ ((ofElectromagneticField c E B).vectorPotential c · x) t) x by
+      simp [h]
+    rw [← Space.time_deriv_curl_commute]
+    · congr
+      funext t
+      have h1 := eq_neg_curl_of_div_zero (B t) (by fun_prop) (B_grad t)
+      conv_lhs => rw [h1]
+      simp only [ofElectromagneticField_vectorPotential]
+      rw [fun_curl_neg]
+      simp only [WithLp.equiv_apply, WithLp.ofLp_smul, map_smul, LinearMap.smul_apply,
+        WithLp.equiv_symm_apply, WithLp.toLp_smul, Pi.neg_apply]
+      intro x
+      apply Differentiable.differentiableAt
+      apply ContDiff.differentiable (n := 1) _ (by simp)
+      apply contDiff_parametric_intervalIntegral_of_contDiff
+      refine contDiff_euclidean.mpr ?_
+      intro i
+      let C : (Space) × ℝ → EuclideanSpace ℝ (Fin 3) := fun p =>
+        let x:= p.1
+        let u := p.2
+        (u • basis.repr x) ⨯ₑ₃ B t (u • x)
+      suffices h : ContDiff ℝ 1 (fun x => C x i) by
+        convert h
+        exact 1
+      fin_cases i
+      all_goals
+      · simp [C, crossProduct]
+        fun_prop
+    · fun_prop
+    · fun_prop
+    · simp only [Time.deriv]
+      fun_prop
 
 /-!
 
@@ -166,7 +227,6 @@ lemma fieldStrengthMatrix_inr_inl_eq_electricField {c : SpeedOfLight}
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 lemma electricField_contDiff {n} {c : SpeedOfLight} {A : ElectromagneticPotential d}
     (hA : ContDiff ℝ (n + 1) A) : ContDiff ℝ n ↿(A.electricField c) := by
   rw [@contDiff_euclidean]
@@ -354,60 +414,5 @@ lemma div_electricField_eq_fieldStrengthMatrix{d} {A : ElectromagneticPotential 
   apply Differentiable.neg
   apply fieldStrengthMatrix_differentiable_space hA
 end ElectromagneticPotential
-
-/-!
-
-## G. Electric field for distributions
-
--/
-
-namespace DistElectromagneticPotential
-open TensorSpecies
-open Tensor
-open SpaceTime
-open TensorProduct
-open minkowskiMatrix SchwartzMap Lorentz
-attribute [-simp] Fintype.sum_sum_type
-attribute [-simp] Nat.succ_eq_add_one
-
-/-- The electric field of an electromagnetic potential which is a distribution. -/
-noncomputable def electricField {d} (c : SpeedOfLight) :
-    DistElectromagneticPotential d →ₗ[ℝ]
-    (Time × Space d) →d[ℝ] EuclideanSpace ℝ (Fin d) where
-  toFun A := - Space.distSpaceGrad (A.scalarPotential c) -
-    Space.distTimeDeriv (A.vectorPotential c)
-  map_add' A1 A2 := by
-    ext ε i
-    simp only [map_add, neg_add_rev, ContinuousLinearMap.coe_sub', Pi.sub_apply,
-      ContinuousLinearMap.add_apply, ContinuousLinearMap.neg_apply, PiLp.sub_apply, PiLp.add_apply,
-      PiLp.neg_apply]
-    ring
-  map_smul' r A := by
-    ext ε i
-    simp only [map_smul, ContinuousLinearMap.coe_sub', ContinuousLinearMap.coe_smul', Pi.sub_apply,
-      ContinuousLinearMap.neg_apply, Pi.smul_apply, PiLp.sub_apply, PiLp.neg_apply, PiLp.smul_apply,
-      smul_eq_mul, Real.ringHom_apply]
-    ring
-
-set_option backward.isDefEq.respectTransparency false in
-lemma electricField_eq_fieldStrength {d} {c : SpeedOfLight}
-    (A : DistElectromagneticPotential d) (ε : 𝓢(Time × Space d, ℝ))
-    (i : Fin d) : A.electricField c ε i = - c * (Vector.basis.tensorProduct Vector.basis).repr
-      (distTimeSlice c (A.fieldStrength) ε) (Sum.inl 0, Sum.inr i) := by
-  simp only [distTimeSlice_apply, Fin.isValue, fieldStrength_basis_repr_eq_single, inl_0_inl_0,
-    one_mul, inr_i_inr_i, neg_mul, sub_neg_eq_add]
-  simp only [electricField, scalarPotential, Vector.temporalCLM, Fin.isValue, map_smul,
-    ContinuousLinearMap.comp_smulₛₗ, Real.ringHom_apply, LinearMap.coe_mk, AddHom.coe_mk,
-    vectorPotential, Vector.spatialCLM, Space.distTimeDeriv_apply_CLM, ContinuousLinearMap.coe_sub',
-    ContinuousLinearMap.coe_comp', ContinuousLinearMap.coe_mk', Pi.sub_apply,
-    ContinuousLinearMap.neg_apply, ContinuousLinearMap.coe_smul', Pi.smul_apply,
-    Function.comp_apply, PiLp.sub_apply, PiLp.neg_apply, PiLp.smul_apply, Space.distSpaceGrad_apply,
-    Space.distSpaceDeriv_apply_CLM, LinearMap.coe_toContinuousLinearMap', smul_eq_mul,
-    ← distTimeSlice_apply, distTimeSlice_distDeriv_inl, one_div, Vector.apply_smul,
-    distTimeSlice_distDeriv_inr]
-  field_simp
-  ring
-
-end DistElectromagneticPotential
 
 end Electromagnetism

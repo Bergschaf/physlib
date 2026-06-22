@@ -6,6 +6,7 @@ Authors: Gregory J. Loges
 module
 
 public import Physlib.Mathematics.KroneckerDelta
+public import Physlib.Relativity.Tensors.RealTensor.Vector.Tensorial
 public import Physlib.QuantumMechanics.DDimensions.Operators.AngularMomentum
 /-!
 
@@ -114,7 +115,7 @@ lemma position_comp_radiusRegPow_commute : 𝐱 i ∘L 𝐫₀ ε s = 𝐫₀ ε
 
 @[simp]
 lemma radiusRegPow_commutation_radiusRegPow : ⁅𝐫₀[d] ε s, 𝐫₀[d] ε t⁆ = 0 := by
-  simp [bracket, mul_def, radiusRegPowOperator_comp_eq, add_comm]
+  simp [bracket, mul_def, radiusRegPowCLM_comp_eq, add_comm]
 
 /-!
 
@@ -122,14 +123,13 @@ lemma radiusRegPow_commutation_radiusRegPow : ⁅𝐫₀[d] ε s, 𝐫₀[d] ε 
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 /-- Momentum operators commute: `[pᵢ, pⱼ] = 0`. -/
 @[simp]
 lemma momentum_commutation_momentum : ⁅𝐩 i, 𝐩 j⁆ = 0 := by
   ext ψ x
   have hdiff (k : Fin d) : Differentiable ℝ (∂[k] ψ) := Space.deriv_differentiable (ψ.smooth 2) k
   show 𝐩 i (𝐩 j ψ) x - 𝐩 j (𝐩 i ψ) x = 0
-  simp only [momentumOperator_apply_fun, Space.deriv_const_smul _ (hdiff _),
+  simp only [momentumCLM_apply_fun, Space.deriv_const_smul _ (hdiff _),
     Space.deriv_commute _ (ψ.smooth 2), sub_self]
 
 lemma momentum_comp_commute : 𝐩 i ∘L 𝐩 j = 𝐩 j ∘L 𝐩 i := by
@@ -148,14 +148,13 @@ lemma momentumSqr_comp_momentum_commute : (𝐩 ⬝ᵥ 𝐩) ∘L 𝐩 i = 𝐩 
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The canonical commutation relations: `[xᵢ, pⱼ] = iℏ δᵢⱼ𝟙`. -/
 lemma position_commutation_momentum : ⁅𝐱 i, 𝐩 j⁆ =
     (I * ℏ) • δ[i,j] • ContinuousLinearMap.id ℂ 𝓢(Space d, ℂ) := by
   ext ψ x
   show 𝐱 i (𝐩 j ψ) x - 𝐩 j (𝐱 i ψ) x = _
   trans (I * ℏ) * (-x i * ∂[j] ψ x + ∂[j] ((fun x : Space d ↦ x i) • ⇑ψ) x)
-  · simp only [positionOperator_apply, momentumOperator_apply, positionOperator_apply_fun]
+  · simp only [positionCLM_apply, momentumCLM_apply, positionCLM_apply_fun]
     ring
   rw [Space.deriv_smul (by fun_prop) (by fun_prop)]
   rw [Space.deriv_component]
@@ -181,7 +180,6 @@ lemma position_commutation_momentumSqr : ⁅𝐱 i, 𝐩 ⬝ᵥ 𝐩⁆ = (2 * I
   simp only [dotProduct, mul_def, lie_sum, lie_leibniz, position_commutation_momentum, comp_smul,
     smul_comp, comp_id, id_comp, ← two_smul ℂ, smul_smul, mul_assoc, ← Finset.smul_sum, sum_smul]
 
-set_option backward.isDefEq.respectTransparency false in
 lemma radiusRegPow_commutation_momentum :
     ⁅𝐫₀[d] ε s, 𝐩 i⁆ = (s * I * ℏ) • 𝐫₀ ε (s-2) ∘L 𝐱 i := by
   ext ψ x
@@ -193,7 +191,7 @@ lemma radiusRegPow_commutation_momentum :
   have hdiff3 : DifferentiableAt ℝ (fun x ↦ ‖x‖ ^ 2 + ε ^ 2) x :=
     Differentiable.differentiableAt (by fun_prop)
   show 𝐫₀ ε s (𝐩 i ψ) x - 𝐩 i (𝐫₀ ε s ψ) x = (s * I * ℏ) * 𝐫₀ ε (s-2) (𝐱 i ψ) x
-  simp only [momentumOperator_apply, positionOperator_apply, radiusRegPowOperator_apply_fun]
+  simp only [momentumCLM_apply, positionCLM_apply, radiusRegPowCLM_apply_fun]
   rw [← Pi.smul_def', Space.deriv_smul hdiff1 (by fun_prop)]
   suffices ∂[i] (fun x ↦ (‖x‖ ^ 2 + ε ^ 2) ^ (s / 2)) x =
       s * (‖x‖ ^ 2 + ε ^ 2) ^ (s / 2 - 1) * x i by
@@ -207,7 +205,6 @@ lemma momentum_comp_radiusRegPow_eq :
     𝐩 i ∘L 𝐫₀ ε s = 𝐫₀ ε s ∘L 𝐩 i - (s * I * ℏ) • 𝐫₀ ε (s-2) ∘L 𝐱 i := by
   rw [comp_eq_comp_sub_commute, radiusRegPow_commutation_momentum]
 
-set_option backward.isDefEq.respectTransparency false in
 lemma radiusRegPow_commutation_momentumSqr :
     ⁅𝐫₀[d] ε s, 𝐩[d] ⬝ᵥ 𝐩⁆ = (2 * s * I * ℏ) • 𝐫₀ ε (s-2) ∘L (𝐱 ⬝ᵥ 𝐩)
     + (s * (d + s - 2) * ℏ ^ 2) • 𝐫₀ ε (s-2) - (ε ^ 2 * s * (s - 2) * ℏ ^ 2) • 𝐫₀ ε (s-4) := by
@@ -224,11 +221,11 @@ lemma radiusRegPow_commutation_momentumSqr :
       simp [momentum_comp_position_eq, sub_add_eq_add_sub, ← two_smul ℂ]
     _ = (s * I * ℏ) • ((2 : ℂ) • 𝐫₀ ε (s-2) ∘L (𝐱 ⬝ᵥ 𝐩) - (d * I * ℏ) • 𝐫₀ ε (s-2)
         - ((s - 2) * I * ℏ) • 𝐫₀ ε (s-4) ∘L ∑ i, 𝐱 i ∘L 𝐱 i) := by
-      simp [Finset.sum_sub_distrib, ← Finset.smul_sum, ← comp_finset_sum,
+      simp [Finset.sum_sub_distrib, ← Finset.smul_sum, ← comp_finsetSum,
         ← Nat.cast_smul_eq_nsmul ℂ, smul_smul, dotProduct, mul_def, mul_assoc]
     _ = (2 * s * I * ℏ) • 𝐫₀ ε (s-2) ∘L (𝐱 ⬝ᵥ 𝐩) + (s * (d + s - 2) * ℏ ^ 2) • 𝐫₀ ε (s-2)
         - (ε ^ 2 * s * (s - 2) * ℏ ^ 2) • 𝐫₀ ε (s-4) := by
-      simp_rw [positionOperatorSqr_eq ε, comp_sub, comp_smul, comp_id, radiusRegPowOperator_comp_eq]
+      simp_rw [positionSqCLM_eq ε, comp_sub, comp_smul, comp_id, radiusRegPowCLM_comp_eq]
       simp only [smul_sub, smul_smul, ← Complex.coe_smul, ofReal_mul, ofReal_add, ofReal_sub,
         ofReal_pow, ofReal_ofNat, ofReal_natCast]
       ring_nf
@@ -300,7 +297,6 @@ lemma angularMomentumSqr_commutation_momentumSqr : ⁅𝐋²[d], 𝐩[d] ⬝ᵥ 
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 lemma angularMomentum_commutation_angularMomentum : ⁅𝐋 i j, 𝐋 k l⁆ =
     (I * ℏ) • (δ[i,k] • 𝐋 j l - δ[i,l] • 𝐋 j k - δ[j,k] • 𝐋 i l + δ[j,l] • 𝐋 i k) := by
   nth_rw 2 [angularMomentumOperator]

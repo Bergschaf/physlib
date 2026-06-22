@@ -5,10 +5,9 @@ Authors: Joseph Tooby-Smith
 -/
 module
 
-public import Physlib.Electromagnetism.Dynamics.IsExtrema
-public import Physlib.SpaceAndTime.Space.Norm
+public import Physlib.Electromagnetism.Distributional.Dynamics.IsExtrema
+public import Physlib.SpaceAndTime.Space.Norm.Basic
 public import Physlib.SpaceAndTime.Space.Translations
-public import Physlib.SpaceAndTime.TimeAndSpace.ConstantTimeDist
 /-!
 
 # The electrostatics of a stationary point particle in 1d
@@ -72,7 +71,6 @@ lemma oneDimPointParticleCurrentDensity_eq_distTranslate (c : SpeedOfLight) (q :
   ext η
   simp [distTranslate_apply]
 
-set_option backward.isDefEq.respectTransparency false in
 @[simp]
 lemma oneDimPointParticleCurrentDensity_currentDensity (c : SpeedOfLight) (q : ℝ) (r₀ : Space 1) :
     (oneDimPointParticleCurrentDensity c q r₀).currentDensity c = 0 := by
@@ -80,7 +78,6 @@ lemma oneDimPointParticleCurrentDensity_currentDensity (c : SpeedOfLight) (q : �
   simp [oneDimPointParticleCurrentDensity, DistLorentzCurrentDensity.currentDensity,
     Lorentz.Vector.spatialCLM, constantTime_apply]
 
-set_option backward.isDefEq.respectTransparency false in
 @[simp]
 lemma oneDimPointParticleCurrentDensity_chargeDensity (c : SpeedOfLight) (q : ℝ) (r₀ : Space 1) :
     (oneDimPointParticleCurrentDensity c q r₀).chargeDensity c =
@@ -130,7 +127,6 @@ lemma oneDimPointParticle_eq_distTranslate (𝓕 : FreeSpace) (q : ℝ) (r₀ : 
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 @[simp]
 lemma oneDimPointParticle_vectorPotential (𝓕 : FreeSpace) (q : ℝ) (r₀ : Space 1) :
     (oneDimPointParticle 𝓕 q r₀).vectorPotential 𝓕.c = 0 := by
@@ -144,7 +140,6 @@ lemma oneDimPointParticle_vectorPotential (𝓕 : FreeSpace) (q : ℝ) (r₀ : S
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 lemma oneDimPointParticle_scalarPotential (𝓕 : FreeSpace) (q : ℝ) (r₀ : Space 1) :
     (oneDimPointParticle 𝓕 q r₀).scalarPotential 𝓕.c =
     Space.constantTime (distOfFunction (fun x =>
@@ -220,7 +215,7 @@ lemma oneDimPointParticle_div_electricField {𝓕} (q : ℝ) (r₀ : Space 1) :
     (𝓕.μ₀ * 𝓕.c ^ 2) • constantTime (q • diracDelta ℝ r₀) := by
   rw [oneDimPointParticle_electricField]
   simp only [Int.reduceNeg, zpow_neg, zpow_one, map_smul, smul_smul]
-  have h1 := Space.distDiv_inv_pow_eq_dim (d := 0)
+  have h1 := Space.distDiv_inv_pow_eq_dim (d := 1)
   simp at h1
   trans (q * 𝓕.μ₀ * 𝓕.c.val ^ 2 / 2) •
     distSpaceDiv (constantTime <|
@@ -244,7 +239,6 @@ lemma oneDimPointParticle_div_electricField {𝓕} (q : ℝ) (r₀ : Space 1) :
   · simp
   · simp
 
-set_option backward.isDefEq.respectTransparency false in
 lemma oneDimPointParticle_isExterma (𝓕 : FreeSpace) (q : ℝ) (r₀ : Space 1) :
     (oneDimPointParticle 𝓕 q r₀).IsExtrema 𝓕 (oneDimPointParticleCurrentDensity 𝓕.c q r₀) := by
   rw [isExtrema_iff_components]

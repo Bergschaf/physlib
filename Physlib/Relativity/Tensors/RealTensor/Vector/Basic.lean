@@ -5,9 +5,8 @@ Authors: Matteo Cipollina, Joseph Tooby-Smith
 -/
 module
 
+public import Mathlib.Analysis.InnerProductSpace.PiL2
 public import Mathlib.Geometry.Manifold.IsManifold.Basic
-public import Physlib.Relativity.Tensors.RealTensor.Basic
-public import Physlib.Relativity.Tensors.Tensorial
 /-!
 
 # Lorentz Vectors
@@ -19,34 +18,20 @@ We create an API around Lorentz vectors to make working with them as easy as pos
 
 @[expose] public section
 
-TODO "Refactor: Split this module on Lorentz vectors into two: `Basic.lean` and `Tensorial.lean`.
-  The former should contain the basic definitions and vector space structure of
-  Lorentz vectors (e.g. the basis etc.). This should only depend on imports from Mathlib.
-  The latter should contain the tensorial instance and everything which should
-  depend on the `Tensorial` imports. A similar TODO item exists
-  for Lorentz co-vectors."
-
-open Module IndexNotation
-open CategoryTheory
-open MonoidalCategory
+open Module
 open Matrix
 open MatrixGroups
 open Complex
 open TensorProduct
-open IndexNotation
-open CategoryTheory
+
 noncomputable section
 
 namespace Lorentz
-open realLorentzTensor
 
 /-- Real contravariant Lorentz vector. -/
 def Vector (d : ℕ := 3) := Fin 1 ⊕ Fin d → ℝ
 
 namespace Vector
-
-open TensorSpecies
-open Tensor
 
 instance {d} : AddCommMonoid (Vector d) :=
   inferInstanceAs (AddCommMonoid (Fin 1 ⊕ Fin d → ℝ))
@@ -57,11 +42,9 @@ instance {d} : Module ℝ (Vector d) :=
 instance {d} : AddCommGroup (Vector d) :=
   inferInstanceAs (AddCommGroup (Fin 1 ⊕ Fin d → ℝ))
 
-set_option backward.isDefEq.respectTransparency false in
 instance {d} : FiniteDimensional ℝ (Vector d) :=
   inferInstanceAs (FiniteDimensional ℝ (Fin 1 ⊕ Fin d → ℝ))
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The equivalence between `Vector d` and `EuclideanSpace ℝ (Fin 1 ⊕ Fin d)`. -/
 def equivEuclid (d : ℕ) :
     Vector d ≃ₗ[ℝ] EuclideanSpace ℝ (Fin 1 ⊕ Fin d) :=
@@ -98,9 +81,8 @@ instance isNormedAddCommGroup (d : ℕ) : NormedAddCommGroup (Vector d) where
     intro h
     apply (equivEuclid d).injective
     simp at h
-    grind
+    rw [← neg_add_eq_zero, h]
 
-set_option backward.isDefEq.respectTransparency false in
 instance isNormedSpace (d : ℕ) : NormedSpace ℝ (Vector d) where
   norm_smul_le c v := by
     simp only [norm_eq_equivEuclid, map_smul]
@@ -133,6 +115,11 @@ instance : ChartedSpace (Vector d) (Vector d) := chartedSpaceSelf (Vector d)
 
 instance {d} : CoeFun (Vector d) (fun _ => Fin 1 ⊕ Fin d → ℝ) where
   coe := fun v => v
+
+lemma ext_of_apply {d} {v w : Vector d} (h : ∀ i, v i = w i) : v = w := by
+  apply (equivEuclid d).injective
+  ext i
+  simpa using h i
 
 @[simp]
 lemma apply_smul {d : ℕ} (c : ℝ) (v : Vector d) (i : Fin 1 ⊕ Fin d) :
@@ -255,7 +242,6 @@ lemma contDiff_apply {n : WithTop ℕ∞} {d : ℕ} {α : Type*}
     · fun_prop
     · exact h
 
-set_option backward.isDefEq.respectTransparency false in
 lemma fderiv_apply {d : ℕ} {α : Type*}
     [NormedAddCommGroup α] [NormedSpace ℝ α]
     (f : α → Vector d) (h : Differentiable ℝ f)
@@ -266,62 +252,11 @@ lemma fderiv_apply {d : ℕ} {α : Type*}
   simp only [ContinuousLinearMap.fderiv, ContinuousLinearMap.coe_comp', Function.comp_apply]
   rfl
 
-set_option backward.isDefEq.respectTransparency false in
 @[simp]
 lemma fderiv_coord {d : ℕ} (μ : Fin 1 ⊕ Fin d) (x : Vector d) :
     fderiv ℝ (fun v : Vector d => v μ) x = coordCLM μ := by
   change fderiv ℝ (coordCLM μ) x = coordCLM μ
   simp
-
-/-!
-
-## Tensorial
-
--/
-
-/-- The equivalence between the type of indices of a Lorentz vector and
-  `Fin 1 ⊕ Fin d`. -/
-def indexEquiv {d : ℕ} :
-    ComponentIdx (S := (realLorentzTensor d)) ![Color.up] ≃ Fin 1 ⊕ Fin d where
-  toFun f := f 0
-  invFun i := fun _ => i
-  left_inv f := by
-    ext m
-    fin_cases m
-    simp
-  right_inv i := by rfl
-
-instance tensorial {d : ℕ} : Tensorial (realLorentzTensor d) ![.up] (Vector d) where
-  toTensor := LinearEquiv.symm <|
-    Equiv.toLinearEquiv
-    ((Tensor.basis (S := (realLorentzTensor d)) ![.up]).repr.toEquiv.trans <|
-  Finsupp.equivFunOnFinite.trans <|
-  (Equiv.piCongrLeft' _ indexEquiv))
-    { map_add := fun x y => by
-        simp [Nat.succ_eq_add_one, Nat.reduceAdd, map_add]
-        rfl
-      map_smul := fun c x => by
-        simp [Nat.succ_eq_add_one, Nat.reduceAdd, _root_.map_smul]
-        rfl}
-
-open Tensorial
-
-lemma toTensor_symm_apply {d : ℕ} (p : ℝT[d, .up]) :
-    (toTensor (self := tensorial)).symm p =
-    (Equiv.piCongrLeft' _ indexEquiv <|
-    Finsupp.equivFunOnFinite <|
-    (Tensor.basis (S := (realLorentzTensor d)) _).repr p) := rfl
-
-lemma toTensor_symm_pure {d : ℕ} (p : Pure (realLorentzTensor d) ![.up]) (i : Fin 1 ⊕ Fin d) :
-    (toTensor (self := tensorial)).symm p.toTensor i =
-    ((Lorentz.contrBasis d).repr (p 0)) (indexEquiv.symm i 0) := by
-  rw [toTensor_symm_apply]
-  simp only [Nat.succ_eq_add_one, Nat.reduceAdd,
-    Equiv.piCongrLeft'_apply, Finsupp.equivFunOnFinite_apply, Fin.isValue]
-  rw [Tensor.basis_repr_pure]
-  simp only [Pure.component, Finset.univ_unique, Fin.default_eq_zero, Fin.isValue,
-    Finset.prod_singleton, cons_val_zero]
-  rfl
 
 /-!
 
@@ -340,58 +275,6 @@ lemma basis_apply {d : ℕ} (μ ν : Fin 1 ⊕ Fin d) :
   erw [Pi.basisFun_apply, Pi.single_apply]
   congr 1
   exact Lean.Grind.eq_congr' rfl rfl
-
-set_option backward.isDefEq.respectTransparency false in
-lemma toTensor_symm_basis {d : ℕ} (μ : Fin 1 ⊕ Fin d) :
-    (toTensor (self := tensorial)).symm (Tensor.basis ![Color.up] (indexEquiv.symm μ)) =
-    basis μ := by
-  rw [Tensor.basis_apply]
-  funext i
-  rw [toTensor_symm_pure]
-  simp [Pure.basisVector]
-  conv_lhs =>
-    enter [1, 2]
-    change (contrBasis d) (indexEquiv.symm μ 0)
-  simp [contrBasis, indexEquiv, Pi.single_apply]
-  congr 1
-  exact Eq.propIntro (fun a => id (Eq.symm a)) fun a => id (Eq.symm a)
-
-lemma toTensor_basis_eq_tensor_basis {d : ℕ} (μ : Fin 1 ⊕ Fin d) :
-    toTensor (basis μ) = Tensor.basis ![Color.up] (indexEquiv.symm μ) := by
-  rw [← toTensor_symm_basis]
-  simp
-
-lemma basis_eq_map_tensor_basis {d} : basis =
-    ((Tensor.basis
-    (S := realLorentzTensor d) ![Color.up]).map toTensor.symm).reindex indexEquiv := by
-  ext μ
-  rw [← toTensor_symm_basis]
-  simp
-
-lemma tensor_basis_map_eq_basis_reindex {d} :
-    (Tensor.basis (S := realLorentzTensor d) ![Color.up]).map toTensor.symm =
-    basis.reindex indexEquiv.symm := by
-  rw [basis_eq_map_tensor_basis]
-  ext μ
-  simp
-
-lemma tensor_basis_repr_toTensor_apply {d : ℕ} (p : Vector d) (μ : ComponentIdx ![Color.up]) :
-    (Tensor.basis ![Color.up]).repr (toTensor p) μ =
-    p (indexEquiv μ) := by
-  obtain ⟨p, rfl⟩ := toTensor.symm.surjective p
-  simp only [Nat.succ_eq_add_one, Nat.reduceAdd, LinearEquiv.apply_symm_apply]
-  apply induction_on_pure (t := p)
-  · intro p
-    rw [Tensor.basis_repr_pure]
-    simp only [Pure.component, Finset.univ_unique, Fin.default_eq_zero, Fin.isValue,
-      Finset.prod_singleton, cons_val_zero, Nat.succ_eq_add_one, Nat.reduceAdd]
-    rw [toTensor_symm_pure]
-    simp
-    rfl
-  · intro r t h
-    simp [h]
-  · intro t1 t2 h1 h2
-    simp [h1, h2]
 
 lemma basis_repr_apply {d : ℕ} (p : Vector d) (μ : Fin 1 ⊕ Fin d) :
     basis.repr p μ = p μ := by
@@ -423,139 +306,6 @@ lemma sum_inl_inr_basis_eq_zero_iff {d : ℕ} (f₀ : ℝ) (f : Fin d → ℝ) :
     = ∑ μ, f' μ • basis μ := by simp [f']
   rw [h1, sum_basis_eq_zero_iff]
   simp [f']
-
-/-!
-
-## The action of the Lorentz group
-
--/
-
-set_option backward.isDefEq.respectTransparency false in
-lemma smul_eq_sum {d : ℕ} (i : Fin 1 ⊕ Fin d) (Λ : LorentzGroup d) (p : Vector d) :
-    (Λ • p) i = ∑ j, Λ.1 i j * p j := by
-  obtain ⟨p, rfl⟩ := toTensor.symm.surjective p
-  rw [smul_toTensor_symm]
-  apply induction_on_pure (t := p)
-  · intro p
-    rw [actionT_pure]
-    rw [toTensor_symm_pure]
-    conv_lhs =>
-      enter [1, 2]
-      change Λ.1 *ᵥ (p 0)
-    rw [contrBasis_repr_apply]
-    conv_lhs => simp only [Fin.isValue, Nat.succ_eq_add_one, Nat.reduceAdd, indexEquiv,
-      cons_val_zero, Fin.cast_eq_self, Equiv.symm_trans_apply, Equiv.symm_symm,
-      Equiv.coe_fn_symm_mk, Equiv.symm_apply_apply, ContrMod.mulVec_val]
-    rw [mulVec_eq_sum]
-    simp only [Finset.sum_apply]
-    congr
-    funext j
-    simp only [Fin.isValue, Pi.smul_apply, transpose_apply, MulOpposite.smul_eq_mul_unop,
-      MulOpposite.unop_op, Nat.succ_eq_add_one, Nat.reduceAdd, mul_eq_mul_left_iff]
-    left
-    rw [toTensor_symm_pure, contrBasis_repr_apply]
-    rfl
-  · intro r t h
-    simp only [actionT_smul, _root_.map_smul]
-    change r * toTensor (self := tensorial).symm (Λ • t) i = _
-    rw [h]
-    rw [Finset.mul_sum]
-    congr
-    funext x
-    simp only [Nat.succ_eq_add_one, Nat.reduceAdd, apply_smul]
-    ring
-  · intro t1 t2 h1 h2
-    simp only [actionT_add, map_add, h1, h2, apply_add]
-    rw [← Finset.sum_add_distrib]
-    congr
-    funext x
-    ring
-
-lemma smul_eq_mulVec {d} (Λ : LorentzGroup d) (p : Vector d) :
-    Λ • p = Λ.1 *ᵥ p := by
-  funext i
-  rw [smul_eq_sum, mulVec_eq_sum]
-  simp only [op_smul_eq_smul, Finset.sum_apply, Pi.smul_apply, transpose_apply, smul_eq_mul,
-    mul_comm]
-
-lemma smul_add {d : ℕ} (Λ : LorentzGroup d) (p q : Vector d) :
-    Λ • (p + q) = Λ • p + Λ • q := by simp
-
-set_option backward.isDefEq.respectTransparency false in
-@[simp]
-lemma smul_sub {d : ℕ} (Λ : LorentzGroup d) (p q : Vector d) :
-    Λ • (p - q) = Λ • p - Λ • q := by
-  rw [smul_eq_mulVec, smul_eq_mulVec, smul_eq_mulVec, Matrix.mulVec_sub]
-
-set_option backward.isDefEq.respectTransparency false in
-lemma smul_zero {d : ℕ} (Λ : LorentzGroup d) :
-    Λ • (0 : Vector d) = 0 := by
-  rw [smul_eq_mulVec, Matrix.mulVec_zero]
-
-set_option backward.isDefEq.respectTransparency false in
-lemma smul_neg {d : ℕ} (Λ : LorentzGroup d) (p : Vector d) :
-    Λ • (-p) = - (Λ • p) := by
-  rw [smul_eq_mulVec, smul_eq_mulVec, Matrix.mulVec_neg]
-
-lemma neg_smul {d} (Λ : LorentzGroup d) (p : Vector d) :
-    (-Λ) • p = - (Λ • p) := by
-  funext i
-  rw [smul_eq_sum, neg_apply, smul_eq_sum]
-  simp
-
-lemma _root_.LorentzGroup.eq_of_action_vector_eq {d : ℕ}
-    {Λ Λ' : LorentzGroup d} (h : ∀ p : Vector d, Λ • p = Λ' • p) :
-    Λ = Λ' := by
-  apply LorentzGroup.eq_of_mulVec_eq
-  simpa only [smul_eq_mulVec] using fun x => h x
-
-/-!
-
-## B. The continuous action of the Lorentz group
-
--/
-
-/-- The Lorentz action on vectors as a continuous linear map. -/
-def actionCLM {d : ℕ} (Λ : LorentzGroup d) :
-    Vector d →L[ℝ] Vector d :=
-  LinearMap.toContinuousLinearMap
-    { toFun := fun v => Λ • v
-      map_add' := smul_add Λ
-      map_smul' := fun c v => by
-        simp only [RingHom.id_apply]
-        funext i
-        simp [smul_eq_sum]
-        ring_nf
-        congr
-        rw [Finset.mul_sum]
-        congr
-        funext j
-        ring}
-
-lemma actionCLM_apply {d : ℕ} (Λ : LorentzGroup d) (p : Vector d) :
-    actionCLM Λ p = Λ • p := rfl
-
-lemma actionCLM_injective {d : ℕ} (Λ : LorentzGroup d) :
-    Function.Injective (actionCLM Λ) := by
-  intro x1 x2
-  simp [actionCLM_apply]
-
-lemma actionCLM_surjective {d : ℕ} (Λ : LorentzGroup d) :
-    Function.Surjective (actionCLM Λ) := by
-  intro x1
-  use (actionCLM Λ⁻¹) x1
-  simp [actionCLM_apply]
-
-set_option backward.isDefEq.respectTransparency false in
-lemma smul_basis {d : ℕ} (Λ : LorentzGroup d) (μ : Fin 1 ⊕ Fin d) :
-    Λ • basis μ = ∑ ν, Λ.1 ν μ • basis ν := by
-  funext i
-  rw [smul_eq_sum]
-  simp only [basis_apply, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq, Finset.mem_univ,
-    ↓reduceIte]
-  trans ∑ ν, ((Λ.1 ν μ • basis ν) i)
-  · simp
-  rw [Fintype.sum_apply]
 
 /-!
 
@@ -642,6 +392,22 @@ lemma temporalCLM_basis_sum_inl {d : ℕ} :
     temporalCLM d (basis (Sum.inl 0)) = 1 := by
   simp [temporalCLM_apply_eq_timeComponent, basis_apply]
 
+/-- The continuous linear map corresponding to the creation of a
+  Lorentz Vector with only a non-zero temporal component. -/
+def ofTemporalComponent {d : ℕ} : ℝ →L[ℝ] Vector d where
+  toFun xt := xt • basis (Sum.inl 0)
+  map_add' := by simp [add_smul]
+  map_smul' := by simp [smul_smul]
+
+/-- The continuous linear map corresponding to the creation of a
+  Lorentz Vector with only non-zero spatial components. -/
+def ofSpatialComponent {d : ℕ} : EuclideanSpace ℝ (Fin d) →L[ℝ] Vector d where
+  toFun xs := ∑ i, xs i • basis (Sum.inr i)
+  map_add' xs ys := by
+    simp [add_smul, Finset.sum_add_distrib]
+  map_smul' c xs := by
+    simp [smul_smul, Finset.smul_sum]
+
 /-!
 
 ## Smoothness
@@ -659,14 +425,12 @@ def asSmoothManifold (d : ℕ) : ModelWithCorners ℝ (Vector d) (Vector d) := �
 -/
 open InnerProductSpace
 
-set_option backward.isDefEq.respectTransparency false in
 lemma basis_inner {d : ℕ} (μ : Fin 1 ⊕ Fin d) (p : Lorentz.Vector d) :
     ⟪Lorentz.Vector.basis μ, p⟫_ℝ = p μ := by
   simp [inner_eq_equivEuclid]
   rw [PiLp.inner_apply]
   simp
 
-set_option backward.isDefEq.respectTransparency false in
 lemma inner_basis {d : ℕ} (p : Lorentz.Vector d) (μ : Fin 1 ⊕ Fin d) :
     ⟪p, Lorentz.Vector.basis μ⟫_ℝ = p μ := by
   simp [inner_eq_equivEuclid]

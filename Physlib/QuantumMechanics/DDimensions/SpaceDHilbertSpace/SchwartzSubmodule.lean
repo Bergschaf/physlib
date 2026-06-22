@@ -47,15 +47,12 @@ variable {d : ℕ}
 ## A. Definitions
 -/
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The continuous linear map including Schwartz maps into `SpaceDHilbertSpace d`. -/
 def schwartzIncl : 𝓢(Space d, ℂ) →L[ℂ] SpaceDHilbertSpace d := toLpCLM ℂ (E := Space d) ℂ 2
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The submodule of `SpaceDHilbertSpace d` corresponding to Schwartz maps. -/
 abbrev schwartzSubmodule (d : ℕ) := (schwartzIncl (d := d)).range
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The linear equivalence between the Schwartz maps `𝓢(Space d, ℂ)` and the Schwartz submodule
   of `SpaceDHilbertSpace d`. -/
 def schwartzEquiv : 𝓢(Space d, ℂ) ≃ₗ[ℂ] schwartzSubmodule d :=
@@ -85,6 +82,27 @@ lemma schwartzEquiv_ae_eq (h : schwartzEquiv f =ᵐ[volume] schwartzEquiv g) : f
 /-!
 ## C. Misc.
 -/
+
+@[simp]
+lemma zero_eq_top : schwartzSubmodule 0 = ⊤ := by
+  ext ψ
+  simp only [LinearMap.mem_range, ContinuousLinearMap.coe_coe, Submodule.mem_top, iff_true]
+  let g : 𝓢(Space 0, ℂ) := {
+    toFun x := ψ 0
+    smooth' := contDiff_const
+    decay' k n := by
+      refine ⟨‖ψ 0‖, fun x ↦ ?_⟩
+      rcases eq_zero_or_pos n with rfl | hn
+      · rw [← one_mul ‖ψ 0‖]
+        refine mul_le_mul ?_ (by simp) (norm_nonneg _) zero_le_one
+        simp [Space.point_dim_zero_eq, zero_pow_le_one]
+      · simp [iteratedFDeriv_const_of_ne hn.ne']
+  }
+  use g
+  ext
+  filter_upwards [schwartzEquiv_coe_ae g] with x hg
+  rw [← schwartzEquiv_apply_coe, hg, Space.point_dim_zero_eq x]
+  rfl
 
 lemma dense (d : ℕ) : Dense (schwartzSubmodule d : Set (SpaceDHilbertSpace d)) :=
   denseRange_toLpCLM ENNReal.top_ne_ofNat.symm

@@ -6,7 +6,7 @@ Authors: Joseph Tooby-Smith
 module
 
 public import Physlib.SpaceAndTime.SpaceTime.LorentzAction
-public import Physlib.Relativity.Tensors.RealTensor.CoVector.Basic
+public import Physlib.Relativity.Tensors.RealTensor.CoVector.Tensorial
 public import Mathlib.Analysis.InnerProductSpace.TensorProduct
 public import Physlib.SpaceAndTime.Space.Derivatives.Basic
 public import Physlib.SpaceAndTime.Time.Derivatives
@@ -22,6 +22,9 @@ distributions on `SpaceTime d`.
 ## ii. Key results
 
 - `deriv` : The derivative of a function `SpaceTime d → M` along the `μ` coordinate.
+- `contDiff_deriv` : If `f` is `C^{n+1}` then `∂_ μ f` is `C^n`.
+- `differentiable_deriv` : If `f` is `C^2` then `∂_ μ f` is differentiable.
+- `deriv_commute` : Derivatives on `SpaceTime d` commute (Clairaut's theorem).
 - `deriv_sum_inr` : The derivative along a spatial coordinate in terms of the
   derivative on `Space d`.
 - `deriv_sum_inl` : The derivative along the temporal coordinate in terms of the
@@ -35,8 +38,10 @@ distributions on `SpaceTime d`.
   - A.1. The definition of the derivative
   - A.2. Basic equality lemmas
   - A.3. Derivative of the zero function
-  - A.4. The derivative of a function composed with a Lorentz transformation
-  - A.5. Spacetime derivatives in terms of time and space derivatives
+  - A.4. Smoothness and differentiability of the derivative
+  - A.5. Derivatives commute
+  - A.6. The derivative of a function composed with a Lorentz transformation
+  - A.7. Spacetime derivatives in terms of time and space derivatives
 - B. Derivatives of distributions
   - B.1. Commutation of derivatives of distributions
   - B.2. Lorentz group action on derivatives of distributions
@@ -116,7 +121,6 @@ lemma contDiff_vector {d : ℕ} (f : SpaceTime d → Lorentz.Vector d) :
     · fun_prop
     · exact h
 
-set_option backward.isDefEq.respectTransparency false in
 lemma deriv_apply_eq {d : ℕ} (μ ν : Fin 1 ⊕ Fin d) (f : SpaceTime d → Lorentz.Vector d)
     (hf : Differentiable ℝ f)
     (y : SpaceTime d) :
@@ -127,7 +131,6 @@ lemma deriv_apply_eq {d : ℕ} (μ ν : Fin 1 ⊕ Fin d) (f : SpaceTime d → Lo
   simp only [ContinuousLinearMap.fderiv, ContinuousLinearMap.coe_comp', Function.comp_apply]
   rfl
 
-set_option backward.isDefEq.respectTransparency false in
 lemma fderiv_vector {d : ℕ} (f : SpaceTime d → Lorentz.Vector d)
     (hf : Differentiable ℝ f) (y dt : SpaceTime d) (ν : Fin 1 ⊕ Fin d) :
     fderiv ℝ f y dt ν = fderiv ℝ (fun x => f x ν) y dt := by
@@ -136,7 +139,6 @@ lemma fderiv_vector {d : ℕ} (f : SpaceTime d → Lorentz.Vector d)
   simp only [ContinuousLinearMap.fderiv, ContinuousLinearMap.coe_comp', Function.comp_apply]
   rfl
 
-set_option backward.isDefEq.respectTransparency false in
 @[simp]
 lemma deriv_coord {d : ℕ} (μ ν : Fin 1 ⊕ Fin d) :
     ∂_ μ (fun x => x ν) = if μ = ν then 1 else 0 := by
@@ -165,11 +167,58 @@ attribute [-simp] Fintype.sum_sum_type
 
 /-!
 
-### A.4. The derivative of a function composed with a Lorentz transformation
+### A.4. Smoothness and differentiability of the derivative
 
 -/
 
-set_option backward.isDefEq.respectTransparency false in
+/-- If `f` is `C^{n+1}` then `∂_ μ f` is `C^n`. -/
+@[fun_prop]
+lemma contDiff_deriv {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ M] {d : ℕ}
+    {n : WithTop ℕ∞} (μ : Fin 1 ⊕ Fin d) (f : SpaceTime d → M) (hf : ContDiff ℝ (n + 1) f) :
+    ContDiff ℝ n (∂_ μ f) := by
+  -- `∂_ μ f = fun x => fderiv ℝ f x (Lorentz.Vector.basis μ)`; use
+  -- `ContDiff.clm_apply` with `ContDiff.fderiv_right`.
+  show ContDiff ℝ n (fun x => fderiv ℝ f x (Lorentz.Vector.basis μ))
+  exact (ContDiff.fderiv_right (m := n) hf (by rfl)).clm_apply contDiff_const
+
+/-- If `f` is `C^2` then `∂_ μ f` is differentiable. -/
+@[fun_prop]
+lemma differentiable_deriv {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ M] {d : ℕ}
+    (μ : Fin 1 ⊕ Fin d) (f : SpaceTime d → M) (hf : ContDiff ℝ 2 f) :
+    Differentiable ℝ (∂_ μ f) :=
+  (contDiff_deriv μ f (n := 1) (by norm_cast)).differentiable one_ne_zero
+
+/-!
+
+### A.5. Derivatives commute
+
+-/
+
+/-- Derivatives on spacetime commute with one another (Clairaut's theorem). -/
+lemma deriv_commute {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ M] {d : ℕ}
+    (μ ν : Fin 1 ⊕ Fin d) (f : SpaceTime d → M) (hf : ContDiff ℝ 2 f) :
+    ∂_ μ (∂_ ν f) = ∂_ ν (∂_ μ f) := by
+  ext x
+  show fderiv ℝ (fun y => fderiv ℝ f y (Lorentz.Vector.basis ν)) x (Lorentz.Vector.basis μ) =
+    fderiv ℝ (fun y => fderiv ℝ f y (Lorentz.Vector.basis μ)) x (Lorentz.Vector.basis ν)
+  rw [fderiv_clm_apply, fderiv_clm_apply]
+  simp only [fderiv_fun_const, Pi.ofNat_apply, ContinuousLinearMap.comp_zero, zero_add,
+    ContinuousLinearMap.flip_apply]
+  rw [IsSymmSndFDerivAt.eq]
+  · apply ContDiffAt.isSymmSndFDerivAt
+    exact hf.contDiffAt
+    simp only [minSmoothness_of_isRCLikeNormedField, le_refl]
+  · have h1 := hf.differentiable (by norm_cast); fun_prop
+  · fun_prop
+  · have h1 := hf.differentiable (by norm_cast); fun_prop
+  · fun_prop
+
+/-!
+
+### A.6. The derivative of a function composed with a Lorentz transformation
+
+-/
+
 lemma deriv_comp_lorentz_action {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ M] {d : ℕ}
     (μ : Fin 1 ⊕ Fin d)
     (f : SpaceTime d → M) (hf : Differentiable ℝ f) (Λ : LorentzGroup d)
@@ -212,7 +261,7 @@ lemma deriv_equivariant (f : SpaceTime d → M) (Λ : LorentzGroup d) (x : Space
 
 /-!
 
-### A.5. Spacetime derivatives in terms of time and space derivatives
+### A.7. Spacetime derivatives in terms of time and space derivatives
 
 -/
 
@@ -233,7 +282,7 @@ lemma deriv_sum_inr {d : ℕ} {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ
   change _ = (toTimeAndSpace c).symm ((fderiv ℝ ((toTimeAndSpace c x).1, ·) (toTimeAndSpace c x).2)
     (Space.basis i))
   rw [DifferentiableAt.fderiv_prodMk]
-  simp only [fderiv_fun_const, Pi.zero_apply, fderiv_id', ContinuousLinearMap.prod_apply,
+  simp only [fderiv_fun_const, Pi.zero_apply, fderiv_fun_id, ContinuousLinearMap.prod_apply,
     ContinuousLinearMap.zero_apply, ContinuousLinearMap.coe_id', id_eq]
   trans (toTimeAndSpace c).symm (0, Space.basis i)
   · rw [← toTimeAndSpace_basis_inr (c := c)]
@@ -241,7 +290,6 @@ lemma deriv_sum_inr {d : ℕ} {M : Type} [NormedAddCommGroup M] [NormedSpace ℝ
   · rfl
   repeat' fun_prop
 
-set_option backward.isDefEq.respectTransparency false in
 lemma deriv_sum_inl {d : ℕ} {M : Type} [NormedAddCommGroup M]
     [NormedSpace ℝ M] (c : SpeedOfLight) (f : SpaceTime d → M)
     (hf : Differentiable ℝ f) (x : SpaceTime d) :
@@ -264,7 +312,7 @@ lemma deriv_sum_inl {d : ℕ} {M : Type} [NormedAddCommGroup M]
   simp only [Fin.isValue, Prod.mk.eta, toTimeAndSpace_symm_fderiv, ContinuousLinearMap.coe_comp',
     ContinuousLinearEquiv.coe_coe, Function.comp_apply]
   rw [DifferentiableAt.fderiv_prodMk]
-  simp only [Fin.isValue, fderiv_id', fderiv_fun_const, Pi.zero_apply,
+  simp only [Fin.isValue, fderiv_fun_id, fderiv_fun_const, Pi.zero_apply,
     ContinuousLinearMap.prod_apply, ContinuousLinearMap.coe_id', id_eq,
     ContinuousLinearMap.zero_apply]
   rw [← map_smul]
@@ -280,7 +328,6 @@ lemma deriv_sum_inl {d : ℕ} {M : Type} [NormedAddCommGroup M]
 
 open Distribution SchwartzMap
 
-set_option backward.isDefEq.respectTransparency false in
 /-- Given a distribution (function) `f : Space d →d[ℝ] M` the derivative
   of `f` in direction `μ`. -/
 noncomputable def distDeriv {M d} [NormedAddCommGroup M] [NormedSpace ℝ M]
@@ -298,7 +345,6 @@ noncomputable def distDeriv {M d} [NormedAddCommGroup M] [NormedSpace ℝ M]
     simp
   map_smul' a f := by simp
 
-set_option backward.isDefEq.respectTransparency false in
 lemma distDeriv_apply {M d} [NormedAddCommGroup M] [NormedSpace ℝ M]
     (μ : Fin 1 ⊕ Fin d) (f : (SpaceTime d) →d[ℝ] M) (ε : 𝓢(SpaceTime d, ℝ)) :
     distDeriv μ f ε = fderivD ℝ f ε (Lorentz.Vector.basis μ) := by
@@ -470,7 +516,7 @@ lemma tensorDeriv_toTensor_basis_repr
   · intro b' _ hb
     simp only [ite_eq_right_iff]
     intro hx
-    grind
+    exact absurd (CoVector.indexEquiv.symm_apply_eq.mp hx) hb
   · simp
 
 /-- The expansion of `tensorDeriv` in terms of the tensor basis vector. -/
@@ -490,7 +536,6 @@ lemma tensorDeriv_eq_sum_tensor_basis
 
 -/
 open InnerProductSpace
-set_option backward.isDefEq.respectTransparency false in
 /-- The derivative of a tensor, as a tensor for distributions. -/
 def distTensorDeriv {M d} [NormedAddCommGroup M]
     [InnerProductSpace ℝ M] [FiniteDimensional ℝ M] :
@@ -502,7 +547,7 @@ def distTensorDeriv {M d} [NormedAddCommGroup M]
     map_smul' a ε := by
       simp [← Finset.smul_sum, tmul_smul]
     cont := by
-      refine continuous_finset_sum Finset.univ (fun μ _ => ?_)
+      refine continuous_finsetSum Finset.univ (fun μ _ => ?_)
       refine Continuous.comp' ?_ ?_
       · change Continuous (fun y => (Lorentz.CoVector.basis μ) ⊗ₜ y)
         obtain ⟨w,b,hb1⟩ := exists_orthonormalBasis ℝ M
@@ -528,7 +573,6 @@ lemma distTensorDeriv_apply {M d} [NormedAddCommGroup M]
     distTensorDeriv f ε = ∑ μ, (Lorentz.CoVector.basis μ) ⊗ₜ distDeriv μ f ε := by
   simp [distTensorDeriv]
 
-set_option backward.isDefEq.respectTransparency false in
 lemma distTensorDeriv_equivariant {M : Type} [NormedAddCommGroup M]
     [InnerProductSpace ℝ M] [FiniteDimensional ℝ M] [(realLorentzTensor d).Tensorial c M]
     (f : (SpaceTime d) →d[ℝ] M) (Λ : LorentzGroup d) :
@@ -573,7 +617,7 @@ lemma distTensorDeriv_toTensor_basis_repr {M : Type} [NormedAddCommGroup M]
   · intro b' _ hb
     simp only [ite_eq_right_iff]
     intro hx
-    grind
+    exact absurd (CoVector.indexEquiv.symm_apply_eq.mp hx) hb
   · simp
 
 end SpaceTime

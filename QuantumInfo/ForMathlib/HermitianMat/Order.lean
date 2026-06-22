@@ -27,7 +27,6 @@ instance : PartialOrder (HermitianMat n 𝕜) :=
   inferInstanceAs (PartialOrder (selfAdjoint _))
 
 open MatrixOrder in
-set_option backward.isDefEq.respectTransparency false in
 instance : IsOrderedAddMonoid (HermitianMat n 𝕜) :=
   inferInstanceAs (IsOrderedAddMonoid (selfAdjoint _))
 
@@ -52,7 +51,6 @@ omit [Fintype n] in
 theorem lt_iff_posdef : A < B ↔ (B - A).mat.PosSemidef ∧ A ≠ B :=
   lt_iff_le_and_ne
 
-set_option backward.isDefEq.respectTransparency false in
 instance : IsStrictOrderedModule ℝ (HermitianMat n 𝕜) where
   smul_lt_smul_of_pos_left a ha b b₂ hb := by
     rw [HermitianMat.lt_iff_posdef] at hb ⊢
@@ -105,10 +103,8 @@ meta def evalHermitianMatTrace : PositivityExt where eval {_u _α} _zα _pα e :
     pure (.nonnegative (← mkAppM ``HermitianMat.trace_nonneg #[pfA]))
 
 --Without these shortcut instances, `gcongr` fails to close certain goals...? Why? TODO
-set_option backward.isDefEq.respectTransparency false in
 instance : PosSMulMono ℝ (HermitianMat n 𝕜) := inferInstance
 
-set_option backward.isDefEq.respectTransparency false in
 instance : SMulPosMono ℝ (HermitianMat n 𝕜) := inferInstance
 
 --Without explicitly giving this instance, Lean times out trying to find it sometimes.
@@ -126,6 +122,28 @@ theorem le_trace_smul_one [DecidableEq n] (hA : 0 ≤ A) : A ≤ A.trace • 1 :
 theorem kronecker_nonneg {A : HermitianMat m 𝕜} (hA : 0 ≤ A) (hB : 0 ≤ B) : 0 ≤ A ⊗ₖ B := by
   rw [zero_le_iff, kronecker_mat]
   classical exact (zero_le_iff.mp hA).PosSemidef_kronecker (zero_le_iff.mp hB)
+
+/-- The self-Kronecker map `A ↦ A ⊗ₖ A` is monotone on nonnegative Hermitian matrices. -/
+theorem kronecker_self_mono (hA : 0 ≤ A) (hB : 0 ≤ B) (hAB : A ≤ B) :
+    A ⊗ₖ A ≤ B ⊗ₖ B := by
+  rw [← sub_nonneg]
+  have hAC : A ⊗ₖ B + -(A ⊗ₖ A) = A ⊗ₖ (B - A) := by
+    rw [show -(A ⊗ₖ A) = A ⊗ₖ (-A) by
+      symm
+      ext1
+      simpa using (Matrix.kronecker_smul (-1 : 𝕜) A.mat A.mat)]
+    simpa [sub_eq_add_neg] using
+      (HermitianMat.kronecker_add (A := A) (B := B) (C := -A)).symm
+  have hEq : B ⊗ₖ B - A ⊗ₖ A = A ⊗ₖ (B - A) + (B - A) ⊗ₖ B := by
+    calc
+      B ⊗ₖ B - A ⊗ₖ A = (A + (B - A)) ⊗ₖ B - A ⊗ₖ A := by
+        rw [show A + (B - A) = B by abel]
+      _ = (A ⊗ₖ B + (B - A) ⊗ₖ B) - A ⊗ₖ A := by rw [HermitianMat.add_kronecker]
+      _ = (A ⊗ₖ B + -(A ⊗ₖ A)) + (B - A) ⊗ₖ B := by abel
+      _ = A ⊗ₖ (B - A) + (B - A) ⊗ₖ B := by rw [hAC]
+  simpa [hEq] using add_nonneg
+    (HermitianMat.kronecker_nonneg hA (sub_nonneg.mpr hAB))
+    (HermitianMat.kronecker_nonneg (sub_nonneg.mpr hAB) hB)
 
 /-- The Kronecker product of two positive Hermitian matrices is positive. -/
 theorem kronecker_pos {A : HermitianMat m 𝕜} (hA : 0 < A) (hB : 0 < B) : 0 < A ⊗ₖ B := by
@@ -342,13 +360,11 @@ example (hA : A.mat.PosSemidef) : 0 ≤ A := by
 example [Nonempty n] (hA : A.mat.PosDef) : 0 < A := by
   positivity
 
-set_option backward.isDefEq.respectTransparency false in
 example [DecidableEq n] [DecidableEq m] [Nonempty n] [Nonempty m]
   (A B : HermitianMat n ℂ) (hA : 0 ≤ A) (hB : 0 ≤ B) (M : Matrix m n ℂ) :
     0 < (2 : HermitianMat (n × m) ℂ) + (3 • A) ⊗ₖ (Real.pi • B).conj M := by
   positivity
 
-set_option backward.isDefEq.respectTransparency false in
 example (A B : HermitianMat n ℂ) (hA : 0 < A) (hB : 0 < B) :
     0 < ((37 • A) ⊗ₖ ((38 : ℝ) • B)).trace := by
   positivity
@@ -483,6 +499,35 @@ theorem ker_conj [DecidableEq n] (hA : 0 ≤ A) (B : Matrix n n 𝕜) :
 theorem ker_le_of_le_smul {α : ℝ} [DecidableEq n] (hα : α ≠ 0) (hA : 0 ≤ A) (hAB : A ≤ α • B) : B.ker ≤ A.ker := by
   rw [← ker_pos_smul B hα]
   exact ker_antitone hA hAB
+
+/-- If a Hermitian matrix is bounded by `M * I`, then all its eigenvalues are at most `M`. -/
+theorem le_smul_one_imp_eigenvalues_le [DecidableEq n] (A : HermitianMat n ℂ) (M : ℝ)
+    (h : A ≤ M • (1 : HermitianMat n ℂ)) (i : n) :
+    A.H.eigenvalues i ≤ M := by
+  let v : n → ℂ := (A.H.eigenvectorBasis i).ofLp
+  have hv : star v ⬝ᵥ v = (1 : ℂ) := by
+    rw [show v = (A.H.eigenvectorBasis i).ofLp from rfl]
+    rw [dotProduct_comm, ← EuclideanSpace.inner_eq_star_dotProduct]
+    simp [A.H.eigenvectorBasis.orthonormal.1 i]
+  have hquad := (le_iff_mulVec_le_mulVec A (M • (1 : HermitianMat n ℂ))).mp h v
+  rw [show A.mat.mulVec v = (A.H.eigenvalues i : ℂ) • v from by
+    simpa [v] using A.H.mulVec_eigenvectorBasis i] at hquad
+  rw [dotProduct_smul, hv] at hquad
+  change (A.H.eigenvalues i : ℂ) • 1 ≤
+    star v ⬝ᵥ ((M : ℂ) • (1 : Matrix n n ℂ)) *ᵥ v at hquad
+  have hquadC : (A.H.eigenvalues i : ℂ) ≤ (M : ℂ) := by
+    have hright : star v ⬝ᵥ ((M : ℂ) • (1 : Matrix n n ℂ)) *ᵥ v = (M : ℂ) := by
+      simp [Matrix.smul_mulVec, hv]
+    simpa [Matrix.smul_mulVec, hv] using hquad.trans_eq hright
+  exact_mod_cast hquadC
+
+open MatrixOrder in
+/-- If all eigenvalues of a Hermitian matrix are at most `M`, then it is bounded by `M * I`. -/
+theorem eigenvalues_le_imp_le_smul_one [DecidableEq n] (A : HermitianMat n ℂ) (M : ℝ)
+    (h : ∀ i, A.H.eigenvalues i ≤ M) :
+    A ≤ M • (1 : HermitianMat n ℂ) := by
+  simpa [HermitianMat.mat_one] using
+    (Matrix.PosSemidef.le_smul_one_of_eigenvalues_iff A.H M).mp h
 
 --TODO: Positivity extensions for traceLeft, traceRight, rpow, nat powers, inverse function,
 -- the various `proj` function (in Proj.lean), and the inner product.

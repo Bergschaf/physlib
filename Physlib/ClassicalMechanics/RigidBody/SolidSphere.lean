@@ -25,7 +25,6 @@ open MeasureTheory
 namespace RigidBody
 open NNReal
 
-set_option backward.isDefEq.respectTransparency false in
 /-- The solid sphere as a rigid body. -/
 noncomputable def solidSphere (d : ℕ) (m R : ℝ≥0) : RigidBody d where
   ρ := ⟨⟨fun f => m / volume.real (Metric.closedBall (0 : Space d) R) *
@@ -52,8 +51,8 @@ lemma solidSphere_mass {d : ℕ} (m R : ℝ≥0) (hr : R ≠ 0) : (solidSphere d
   have h1 : (@volume (Space d.succ) measureSpaceOfInnerProductSpace).real
       (Metric.closedBall 0 R) ≠ 0 := by
     refine (measureReal_ne_zero_iff ?_).mpr ?_
-    · apply Space.volume_closedBall_ne_top
-    · apply Space.volume_closedBall_ne_zero
+    · apply measure_closedBall_lt_top.ne
+    · apply (Metric.measure_closedBall_pos volume _ _).ne'
       have hr' := R.2
       have hx : R.1 ≠ 0 := by simpa using hr
       apply lt_of_le_of_ne hr' (Ne.symm hx)
