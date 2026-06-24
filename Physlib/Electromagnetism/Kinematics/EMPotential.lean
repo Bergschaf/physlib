@@ -161,7 +161,8 @@ noncomputable def ofPotentials {d} (c : SpeedOfLight) (ϕ : Time → Space d →
 lemma ofPotentials_eq_add {d} (c : SpeedOfLight) (ϕ : Time → Space d → ℝ)
     (A : Time → Space d → EuclideanSpace ℝ (Fin d)) :
     ofPotentials c ϕ A = ofScalarPotential c ϕ + ofVectorPotential c A := by
-  ext x
+  ext1
+  ext1 x
   refine Lorentz.Vector.ext_of_apply (fun i => ?_)
   match i with
   | Sum.inl 0 =>
@@ -195,9 +196,6 @@ noncomputable def ofElectromagneticField (c : SpeedOfLight)
 
 TODO "Write lemmas for the various properties (e.g. the electric field) of
   the electromagnetic potential from the various constructors."
-
-TODO "Define constructors for the distributional electromagnetic potential, similar
-  to e.g. `ofScalarPotential` and `ofVectorPotential` for `ElectromagneticPotential`."
 
 /-!
 

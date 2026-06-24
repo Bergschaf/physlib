@@ -97,6 +97,7 @@ open Submodule
 open Metric
 open InnerProductSpace
 open Complex
+open ComplexConjugate
 open Set
 open Pointwise
 
@@ -104,7 +105,7 @@ open Pointwise
 abbrev resolvent (T : H →ₗ.[ℂ] H) (z : ℂ) : H →ₗ.[ℂ] H := (T - z • 1).inverse
 
 @[inherit_doc resolvent]
-local notation "𝑅" => resolvent
+scoped notation "𝑅" => resolvent
 
 /-!
 ## A. Regularity domain
@@ -275,6 +276,50 @@ lemma IsClosed.sub_range_isClosed [CompleteSpace H]
     _root_.IsClosed ((T - z • 1).toFun.range : Set H) := by
   have hT' : T.closure = T := hT.isClosable.isClosed_iff.mp hT
   exact (hT' ▸ hT.isClosable.closure_range_sub_eq_range_closure_sub hz) ▸ isClosed_closure
+
+/-- `(T.closure - z • 1).rangeᗮ = (T† - conj z • 1).ker` -/
+lemma IsUnbounded.orthogonal_closure_sub_range [CompleteSpace H]
+    {T : H →ₗ.[ℂ] H} (hT : T.IsUnbounded) (z : ℂ) :
+    (T.closure - z • 1).toFun.rangeᗮ
+      = (T† - conj z • 1).toFun.ker.map (T† - conj z • 1).domain.subtype := by
+  let S := T.closure - z • 1
+  have hS_domain : S.domain = T.closure.domain := by simp [S, sub_domain]
+  have hS_dense : S.HasDenseDomain := hT.hasDenseDomain.mono (by simp [hS_domain, T.le_closure.1])
+  have hS_adjoint : S† = T† - conj z • 1 := by
+    rw [← hT.adjoint_closure_eq_adjoint]
+    refine (eq_of_le_of_domain_eq ?_ ?_).symm
+    · refine le_of_eq_of_le ?_ (adjoint_sub_le_sub_adjoint T.closure (z • 1) hS_dense)
+      rcases eq_zero_or_neZero z with rfl | hz₀
+      · simp
+      · simp [adjoint_smul _ hz₀.ne]
+    · ext x
+      simp only [sub_domain, smul_domain, one_domain, le_top, inf_of_le_left]
+      constructor <;> intro h
+      · apply mem_adjoint_domain_of_exists
+        use T.closure† ⟨x, h⟩ - conj z • x
+        intro y
+        have h_inner : ⟪T.closure† ⟨x, h⟩, y⟫_ℂ = ⟪x, T.closure ⟨y, hS_domain ▸ y.2⟩⟫_ℂ :=
+          adjoint_isFormalAdjoint hT.hasDenseDomain.closure ⟨x, h⟩ ⟨y, hS_domain ▸ y.2⟩
+        simp [inner_sub_left, h_inner, S, sub_apply, inner_sub_right, inner_smul_left,
+          inner_smul_right]
+      · apply mem_adjoint_domain_of_exists
+        use S† ⟨x, h⟩ + conj z • x
+        intro y
+        have h_inner : ⟪S† ⟨x, h⟩, y⟫_ℂ = ⟪x, S ⟨y, by simp [hS_domain]⟩⟫_ℂ :=
+          adjoint_isFormalAdjoint hS_dense ⟨x, h⟩ ⟨y, by simp [hS_domain]⟩
+        simp [inner_add_left, h_inner, S, sub_apply, inner_sub_right, inner_smul_left,
+          inner_smul_right]
+  exact hS_adjoint ▸ hS_dense.orthogonal_range
+
+/-- `(T† - conj z • 1).kerᗮ = (T.closure - z • 1).range` -/
+lemma IsUnbounded.orthogonal_adjoint_sub_ker [CompleteSpace H]
+    {T : H →ₗ.[ℂ] H} (hT : T.IsUnbounded) {z : ℂ} (hz : z ∈ T.regularityDomain) :
+    ((T† - conj z • 1).toFun.ker.map (T† - conj z • 1).domain.subtype)ᗮ
+      = (T.closure - z • 1).toFun.range := by
+  have hT' : IsClosable T.closure := hT.isClosable.closureIsClosable
+  have hTcl : T.closure.closure = T.closure := hT'.isClosed_iff.mp hT.isClosable.closure_isClosed
+  rw [← hTcl, ← hT.orthogonal_closure_sub_range, orthogonal_orthogonal_eq_closure]
+  exact hT'.closure_range_sub_eq_range_closure_sub (T.regularityDomain_closure ▸ hz)
 
 /-!
 ## B. Deficiency subspace & defect number
@@ -617,7 +662,7 @@ def resolventSet (T : H →ₗ.[ℂ] H) : Set ℂ :=
   {z : ℂ | (T - z • 1).toFun.ker = ⊥ ∧ (T - z • 1).toFun.range = ⊤ ∧ Continuous (𝑅 T z)}
 
 @[inherit_doc resolventSet]
-local notation "ρ" => resolventSet
+scoped notation "ρ" => resolventSet
 
 lemma resolventSet_eq (T : H →ₗ.[ℂ] H) :
     ρ T = {z | (T - z • 1).toFun.ker = ⊥ ∧ (T - z • 1).toFun.range = ⊤ ∧ Continuous (𝑅 T z)} :=
@@ -693,7 +738,7 @@ lemma resolventSet_isOpen [CompleteSpace H] (T : H →ₗ.[ℂ] H) : IsOpen (ρ 
 def spectrum (T : H →ₗ.[ℂ] H) : Set ℂ := (ρ T)ᶜ
 
 @[inherit_doc spectrum]
-local notation "σ" => spectrum
+scoped notation "σ" => spectrum
 
 lemma spectrum_eq (T : H →ₗ.[ℂ] H) : σ T = (ρ T)ᶜ := rfl
 
@@ -720,7 +765,7 @@ lemma spectrum_isClosed [CompleteSpace H] (T : H →ₗ.[ℂ] H) : _root_.IsClos
 def pointSpectrum (T : H →ₗ.[ℂ] H) : Set ℂ := {z : ℂ | (T - z • 1).toFun.ker ≠ ⊥}
 
 @[inherit_doc pointSpectrum]
-local notation "σᵖ" => pointSpectrum
+scoped notation "σᵖ" => pointSpectrum
 
 lemma pointSpectrum_eq (T : H →ₗ.[ℂ] H) : σᵖ T = {z | (T - z • 1).toFun.ker ≠ ⊥} := rfl
 
@@ -742,7 +787,7 @@ def residualSpectrum (T : H →ₗ.[ℂ] H) : Set ℂ :=
   {z : ℂ | (T - z • 1).toFun.ker = ⊥ ∧ (T - z • 1).toFun.range ≠ ⊤ ∧ Continuous (𝑅 T z)}
 
 @[inherit_doc residualSpectrum]
-local notation "σʳ" => residualSpectrum
+scoped notation "σʳ" => residualSpectrum
 
 lemma residualSpectrum_eq (T : H →ₗ.[ℂ] H) :
     σʳ T = {z | (T - z • 1).toFun.ker = ⊥ ∧ (T - z • 1).toFun.range ≠ ⊤ ∧ Continuous (𝑅 T z)} :=
@@ -755,6 +800,9 @@ lemma mem_residualSpectrum_iff {T : H →ₗ.[ℂ] H} {z : ℂ} :
 lemma residualSpectrum_subset_spectrum (T : H →ₗ.[ℂ] H) : σʳ T ⊆ σ T :=
   fun _ ⟨_, h, _⟩ ↦ mem_spectrum_iff.mpr (Or.inr <| Or.inl h)
 
+lemma residualSpectrum_subset_regularityDomain (T : H →ₗ.[ℂ] H) : σʳ T ⊆ T.regularityDomain :=
+  fun _ hz ↦ mem_regularityDomain_iff.mpr ⟨hz.1, hz.2.2⟩
+
 /-!
 #### D.2.3. Continuous spectrum
 -/
@@ -766,7 +814,7 @@ def continuousSpectrum (T : H →ₗ.[ℂ] H) : Set ℂ :=
   {z : ℂ | ¬_root_.IsClosed ((T - z • 1).toFun.range : Set H)}
 
 @[inherit_doc continuousSpectrum]
-local notation "σᶜ" => continuousSpectrum
+scoped notation "σᶜ" => continuousSpectrum
 
 lemma continuousSpectrum_eq (T : H →ₗ.[ℂ] H) :
     σᶜ T = {z | ¬_root_.IsClosed ((T - z • 1).toFun.range : Set H)} := rfl

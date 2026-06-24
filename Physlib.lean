@@ -26,6 +26,12 @@ public import Physlib.CondensedMatter.Basic
 public import Physlib.CondensedMatter.TightBindingChain.Basic
 public import Physlib.Cosmology.Basic
 public import Physlib.Cosmology.FLRW.Basic
+public import Physlib.Cosmology.FLRW.ConformalTime
+public import Physlib.Cosmology.FLRW.DensityParameters
+public import Physlib.Cosmology.FLRW.Distances
+public import Physlib.Cosmology.FLRW.Dynamics
+public import Physlib.Cosmology.FLRW.MatterContent
+public import Physlib.Cosmology.FLRW.Solutions
 public import Physlib.Electromagnetism.Basic
 public import Physlib.Electromagnetism.Charge.ChargeUnit
 public import Physlib.Electromagnetism.Current.CircularCoil
@@ -69,6 +75,7 @@ public import Physlib.Mathematics.Calculus.AdjFDeriv
 public import Physlib.Mathematics.Calculus.Divergence
 public import Physlib.Mathematics.Calculus.ParametricIntegration
 public import Physlib.Mathematics.Calculus.Wirtinger.Basic
+public import Physlib.Mathematics.Calculus.Wirtinger.Coordinate
 public import Physlib.Mathematics.DataStructures.FourTree.Basic
 public import Physlib.Mathematics.DataStructures.FourTree.UniqueMap
 public import Physlib.Mathematics.DataStructures.Matrix.LieTrace
@@ -85,6 +92,7 @@ public import Physlib.Mathematics.InnerProductSpace.Calculus
 public import Physlib.Mathematics.InnerProductSpace.Submodule
 public import Physlib.Mathematics.KroneckerDelta
 public import Physlib.Mathematics.LinearMaps
+public import Physlib.Mathematics.LinearPMap
 public import Physlib.Mathematics.List
 public import Physlib.Mathematics.List.InsertIdx
 public import Physlib.Mathematics.List.InsertionSort
@@ -155,6 +163,7 @@ public import Physlib.Particles.StandardModel.AnomalyCancellation.NoGrav.One.Lin
 public import Physlib.Particles.StandardModel.AnomalyCancellation.Permutations
 public import Physlib.Particles.StandardModel.Basic
 public import Physlib.Particles.StandardModel.HiggsBoson.Basic
+public import Physlib.Particles.StandardModel.HiggsBoson.EffectivePotential
 public import Physlib.Particles.StandardModel.HiggsBoson.Potential
 public import Physlib.Particles.StandardModel.Representations
 public import Physlib.Particles.SuperSymmetry.MSSMNu.AnomalyCancellation.B3
@@ -265,6 +274,8 @@ public import Physlib.QuantumMechanics.DDimensions.Operators.Momentum
 public import Physlib.QuantumMechanics.DDimensions.Operators.Multiplication
 public import Physlib.QuantumMechanics.DDimensions.Operators.Position
 public import Physlib.QuantumMechanics.DDimensions.Operators.SpectralTheory.Basic
+public import Physlib.QuantumMechanics.DDimensions.Operators.SpectralTheory.SelfAdjoint
+public import Physlib.QuantumMechanics.DDimensions.Operators.SpectralTheory.SpectralMeasure
 public import Physlib.QuantumMechanics.DDimensions.Operators.SpectralTheory.Symmetric
 public import Physlib.QuantumMechanics.DDimensions.Operators.StateObservables.ExpectedValue
 public import Physlib.QuantumMechanics.DDimensions.Operators.StateObservables.IsEigenvector
@@ -359,6 +370,7 @@ public import Physlib.Relativity.Tensors.OfInt
 public import Physlib.Relativity.Tensors.Product
 public import Physlib.Relativity.Tensors.RealTensor.Basic
 public import Physlib.Relativity.Tensors.RealTensor.CoVector.Basic
+public import Physlib.Relativity.Tensors.RealTensor.CoVector.Representation
 public import Physlib.Relativity.Tensors.RealTensor.CoVector.Tensorial
 public import Physlib.Relativity.Tensors.RealTensor.Matrix.Pre
 public import Physlib.Relativity.Tensors.RealTensor.Metrics.Basic
@@ -373,6 +385,7 @@ public import Physlib.Relativity.Tensors.RealTensor.Vector.MinkowskiProduct
 public import Physlib.Relativity.Tensors.RealTensor.Vector.Pre.Basic
 public import Physlib.Relativity.Tensors.RealTensor.Vector.Pre.Contraction
 public import Physlib.Relativity.Tensors.RealTensor.Vector.Pre.Modules
+public import Physlib.Relativity.Tensors.RealTensor.Vector.Representation
 public import Physlib.Relativity.Tensors.RealTensor.Vector.Tensorial
 public import Physlib.Relativity.Tensors.RealTensor.Velocity.Basic
 public import Physlib.Relativity.Tensors.TensorSpecies.Basic
@@ -392,6 +405,7 @@ public import Physlib.SpaceAndTime.Space.Derivatives.MatrixDiv
 public import Physlib.SpaceAndTime.Space.Derivatives.MultiIndex
 public import Physlib.SpaceAndTime.Space.DistConst
 public import Physlib.SpaceAndTime.Space.DistOfFunction
+public import Physlib.SpaceAndTime.Space.EuclideanGroup.Action
 public import Physlib.SpaceAndTime.Space.EuclideanGroup.AffineGroup
 public import Physlib.SpaceAndTime.Space.EuclideanGroup.Basic
 public import Physlib.SpaceAndTime.Space.Integrals.Basic
@@ -402,6 +416,7 @@ public import Physlib.SpaceAndTime.Space.LengthUnit
 public import Physlib.SpaceAndTime.Space.Module
 public import Physlib.SpaceAndTime.Space.Norm.Basic
 public import Physlib.SpaceAndTime.Space.Norm.IteratedLaplacian
+public import Physlib.SpaceAndTime.Space.Origin
 public import Physlib.SpaceAndTime.Space.Slice
 public import Physlib.SpaceAndTime.Space.Translations
 public import Physlib.SpaceAndTime.SpaceTime.Basic
@@ -416,6 +431,7 @@ public import Physlib.SpaceAndTime.Time.TimeTransMan
 public import Physlib.SpaceAndTime.Time.TimeUnit
 public import Physlib.SpaceAndTime.TimeAndSpace.Basic
 public import Physlib.SpaceAndTime.TimeAndSpace.ConstantTimeDist
+public import Physlib.SpaceAndTime.TimeAndSpace.EuclideanGroup.Action
 public import Physlib.StatisticalMechanics.BoltzmannConstant
 public import Physlib.StatisticalMechanics.CanonicalEnsemble.Basic
 public import Physlib.StatisticalMechanics.CanonicalEnsemble.Finite
